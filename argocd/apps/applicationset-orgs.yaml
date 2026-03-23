@@ -75,7 +75,7 @@ spec:
           kind: Dashboard
           jsonPointers: [/status, /metadata/annotations/crossplane.io~1external-name]
         - group: alerting.grafana.crossplane.io
-          kind: AlertruleV0Alpha1
+          kind: RuleGroup
           jsonPointers: [/status, /metadata/annotations/crossplane.io~1external-name]
 
       info:

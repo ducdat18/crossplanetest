@@ -78,7 +78,7 @@ data:
     health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Apply failed")
     return health_status
 
-  resource.customizations.health.alerting.grafana.crossplane.io_AlertruleV0Alpha1: |
+  resource.customizations.health.alerting.grafana.crossplane.io_RuleGroup: |
     local health_status = {}
     if obj.status == nil or obj.status.conditions == nil then
       health_status.status = "Progressing"
@@ -181,7 +181,7 @@ data:
       - .spec.initProvider
       - .spec.managementPolicies
 
-  resource.customizations.ignoreDifferences.alerting.grafana.crossplane.io_AlertruleV0Alpha1: |
+  resource.customizations.ignoreDifferences.alerting.grafana.crossplane.io_RuleGroup: |
     jqPathExpressions:
       - .status
       - .metadata.annotations["crossplane.io/external-name"]

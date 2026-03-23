@@ -1,5 +1,5 @@
 apiVersion: alerting.grafana.crossplane.io/v1alpha1
-kind: AlertruleV0Alpha1
+kind: RuleGroup
 metadata:
   name: plat-svc-crit-high-error-rate
   labels:
@@ -14,23 +14,39 @@ spec:
   providerConfigRef:
     name: default
   forProvider:
-    metadata:
-      folderUid: plat-realtime
-      uid: plat-svc-crit-high-error-rate
-    spec:
-      title: "PLAT-SVC-CRIT-high-error-rate"
-      for: "1m"
-      execErrState: "Error"
-      noDataState: "NoData"
-      annotations:
-        summary: "High HTTP error rate detected on PLAT services"
-        description: "Error rate exceeded 5% threshold for more than 1 minute"
-        runbook_url: "https://wiki.vpbank.com.vn/runbooks/high-error-rate"
-      labels:
-        tier: "real-time"
-        severity: "critical"
-        template_id: "TPL-ALERT-001"
-        org: "org-platform-2025"
-      expressions:
-        A: '{"refId":"A","queryType":"","relativeTimeRange":{"from":300,"to":0},"datasourceUid":"__ds_uid__","model":{"expr":"sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m])) > 0.05","refId":"A","intervalMs":1000,"maxDataPoints":43200}}'
-        B: '{"refId":"B","queryType":"","relativeTimeRange":{"from":300,"to":0},"datasourceUid":"__expr__","model":{"type":"threshold","refId":"B","expression":"A","conditions":[{"evaluator":{"type":"gt","params":[0]},"operator":{"type":"and"},"query":{"params":["A"]},"reducer":{"type":"last","params":[]},"type":"query"}],"intervalMs":1000,"maxDataPoints":43200}}'
+    name: "plat-svc-crit-high-error-rate"
+    folderUid: plat-realtime
+    organizationRef:
+      name: org-platform-2025
+    intervalSeconds: 60
+    rule:
+      - name: "PLAT-SVC-CRIT-high-error-rate"
+        uid: "plat-svc-crit-http-err"
+        for: "1m"
+        execErrState: "Error"
+        noDataState: "NoData"
+        condition: "B"
+        annotations:
+          summary: "High HTTP error rate detected on PLAT services"
+          description: "Error rate exceeded 5% threshold for more than 1 minute"
+          runbook_url: "https://wiki.vpbank.com.vn/runbooks/high-error-rate"
+        labels:
+          tier: "real-time"
+          severity: "critical"
+          template_id: "TPL-ALERT-001"
+          org: "org-platform-2025"
+        data:
+          - refId: "A"
+            datasourceUid: "prometheus"
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model: '{"expr":"sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m]))","refId":"A","intervalMs":1000,"maxDataPoints":43200,"instant":false}'
+          - refId: "B"
+            datasourceUid: "__expr__"
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model: '{"type":"threshold","refId":"B","expression":"A","conditions":[{"evaluator":{"type":"gt","params":[0.05]},"operator":{"type":"and"},"query":{"params":["A"]},"reducer":{"type":"last","params":[]},"type":"query"}],"intervalMs":1000,"maxDataPoints":43200}'
