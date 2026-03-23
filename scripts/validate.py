@@ -117,6 +117,7 @@ def get_schema_for_resource(api_version: str, kind: str) -> Optional[dict]:
         "AlertRule": "alert-rule",
         "Organization": "org",
         "Folder": "folder",
+        "RuleGroup": "alert-rule",
     }
     schema_name = kind_map.get(kind)
     if schema_name:
@@ -349,6 +350,85 @@ def validate_org_member(doc: dict, result: ValidationResult, file_str: str):
     if not has_org:
         result.error("spec.forProvider.orgId or spec.forProvider.orgIdRef is required", file_str)
 
+def validate_rule_group(doc: dict, result: ValidationResult, file_str: str):
+    """Validate RuleGroup (alerting.grafana.crossplane.io/v1alpha1)."""
+    metadata = doc.get("metadata", {})
+    name = metadata.get("name", "")
+    validate_k8s_name(name, result, file_str)
+
+    for_provider = doc.get("spec", {}).get("forProvider", {})
+
+    if not for_provider.get("folderUid") and not for_provider.get("folderRef"):
+        result.error("spec.forProvider.folderUid or spec.forProvider.folderRef is required", file_str)
+
+    if not for_provider.get("organizationRef") and not for_provider.get("orgId"):
+        result.error("spec.forProvider.organizationRef or spec.forProvider.orgId is required", file_str)
+
+    rules = for_provider.get("rule", [])
+    if not rules:
+        result.error("spec.forProvider.rule[] must contain at least one alert rule", file_str)
+        return
+
+    is_template = "templates" in file_str.replace("\\", "/")
+
+    for i, rule in enumerate(rules):
+        prefix = f"rule[{i}]"
+        rule_name = rule.get("name", "")
+
+        if not rule_name:
+            result.error(f"spec.forProvider.{prefix}.name is required", file_str)
+        elif not is_template and not NAMING_PATTERNS["alert_rule"].match(rule_name):
+            result.error(
+                f"spec.forProvider.{prefix}.name '{rule_name}' does not match naming convention "
+                f"^[A-Z]{{2,6}}-[A-Z]+-(CRIT|WARN|INFO)-[a-z0-9-]+$",
+                file_str
+            )
+
+        labels = rule.get("labels", {})
+        tier = labels.get("tier")
+        if not tier and not is_template:
+            result.error(f"spec.forProvider.{prefix}.labels.tier is required", file_str)
+        elif tier and tier not in TIER_SEVERITY_MAP:
+            result.error(f"spec.forProvider.{prefix}.labels.tier '{tier}' is invalid", file_str)
+
+        severity = labels.get("severity")
+        if not severity and not is_template:
+            result.error(f"spec.forProvider.{prefix}.labels.severity is required", file_str)
+
+        if tier and severity and tier in TIER_SEVERITY_MAP:
+            expected = TIER_SEVERITY_MAP[tier]
+            if severity != expected:
+                result.error(
+                    f"spec.forProvider.{prefix}: tier '{tier}' requires severity '{expected}' but got '{severity}'",
+                    file_str
+                )
+
+        template_id = labels.get("template_id")
+        if not template_id and not is_template:
+            result.error(f"spec.forProvider.{prefix}.labels.template_id is required (e.g., TPL-ALERT-001)", file_str)
+        elif template_id and not re.match(r'^TPL-ALERT-[0-9]{3}$', template_id):
+            result.error(f"spec.forProvider.{prefix}.labels.template_id '{template_id}' must match TPL-ALERT-NNN", file_str)
+
+        annotations = rule.get("annotations", {})
+        if not annotations.get("summary") and not is_template:
+            result.error(f"spec.forProvider.{prefix}.annotations.summary is required", file_str)
+
+        runbook = annotations.get("runbook_url")
+        if not runbook and not is_template:
+            result.error(f"spec.forProvider.{prefix}.annotations.runbook_url is required", file_str)
+        elif runbook and not re.match(r'^https?://', runbook):
+            result.error(f"spec.forProvider.{prefix}.annotations.runbook_url must be a valid HTTP/HTTPS URL", file_str)
+
+        data = rule.get("data", [])
+        if not data and not is_template:
+            result.error(f"spec.forProvider.{prefix}.data[] is required with at least one query", file_str)
+
+        for_duration = rule.get("for")
+        if not for_duration and not is_template:
+            result.error(f"spec.forProvider.{prefix}.for (evaluation duration) is required", file_str)
+        elif for_duration and not re.match(r'^([0-9]+[smhd])+$', str(for_duration)):
+            result.error(f"spec.forProvider.{prefix}.for '{for_duration}' must be a valid duration (e.g., 5m, 30s)", file_str)
+
 # ============================================================================
 # Common validations
 # ============================================================================
@@ -414,22 +494,23 @@ def collect_all_resources(root_dir: Path) -> Dict[str, List[dict]]:
     return resources
 
 def check_folder_uid_references(resources: Dict[str, List[dict]], result: ValidationResult):
-    """Check that folderUid references in AlertRules exist as Folder resources."""
+    """Check that folderUid references in AlertRules/RuleGroups exist as Folder resources."""
     folder_uids = set()
     for folder_entry in resources.get("Folder", []):
         uid = folder_entry["doc"].get("spec", {}).get("forProvider", {}).get("uid")
         if uid:
             folder_uids.add(uid)
 
-    for alert_entry in resources.get("AlertRule", []):
-        doc = alert_entry["doc"]
-        file_str = alert_entry["file"]
-        folder_uid = doc.get("spec", {}).get("forProvider", {}).get("folderUid")
-        if folder_uid and folder_uid not in folder_uids:
-            result.warn(
-                f"AlertRule references folderUid '{folder_uid}' but no Folder resource with that uid was found in the repo",
-                file_str
-            )
+    for kind in ("AlertRule", "RuleGroup"):
+        for alert_entry in resources.get(kind, []):
+            doc = alert_entry["doc"]
+            file_str = alert_entry["file"]
+            folder_uid = doc.get("spec", {}).get("forProvider", {}).get("folderUid")
+            if folder_uid and folder_uid not in folder_uids:
+                result.warn(
+                    f"{kind} references folderUid '{folder_uid}' but no Folder resource with that uid was found in the repo",
+                    file_str
+                )
 
 def check_uid_uniqueness(resources: Dict[str, List[dict]], result: ValidationResult):
     """Check that folder UIDs are unique across all Folder resources."""
@@ -479,14 +560,17 @@ def validate_document(doc: dict, file_str: str, result: ValidationResult):
 
     if kind == "Dashboard":
         validate_dashboard(doc, result, file_str)
-    elif kind == "AlertRule":
-        validate_alert_rule(doc, result, file_str)
-        # Check PromQL in data
-        for data_item in doc.get("spec", {}).get("forProvider", {}).get("data", []):
-            model = data_item.get("model", {})
-            expr = model.get("expr", "")
-            if expr:
-                check_promql_syntax(expr, file_str, result)
+    elif kind in ("AlertRule", "RuleGroup"):
+        if kind == "AlertRule":
+            validate_alert_rule(doc, result, file_str)
+            for data_item in doc.get("spec", {}).get("forProvider", {}).get("data", []):
+                model = data_item.get("model", {})
+                if isinstance(model, dict):
+                    expr = model.get("expr", "")
+                    if expr:
+                        check_promql_syntax(expr, file_str, result)
+        else:
+            validate_rule_group(doc, result, file_str)
     elif kind == "Folder":
         validate_folder(doc, result, file_str)
     elif kind == "Organization":

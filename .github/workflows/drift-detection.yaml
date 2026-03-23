@@ -2,8 +2,8 @@ name: Drift Detection
 
 on:
   schedule:
-    # Run every 5 minutes
-    - cron: '*/5 * * * *'
+    # Run every 30 minutes (5min is too expensive for GitHub Actions)
+    - cron: '*/30 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -91,9 +91,9 @@ jobs:
           PYEOF
           DASH_EXIT=$?
 
-          # Check AlertRule resources
-          echo "Checking AlertRule resources..."
-          kubectl get alertrules.oss.grafana.crossplane.io \
+          # Check RuleGroup resources (alerting.grafana.crossplane.io)
+          echo "Checking RuleGroup resources..."
+          kubectl get rulegroups.alerting.grafana.crossplane.io \
             --all-namespaces \
             -o json 2>/dev/null | python3 - << 'PYEOF'
           import json, sys
@@ -109,9 +109,9 @@ jobs:
             synced = next((c for c in conditions if c.get("type") == "Synced"), None)
 
             if ready and ready.get("status") != "True":
-              drift.append(f"AlertRule/{name}: Ready={ready.get('status')} ({ready.get('message','')})")
+              drift.append(f"RuleGroup/{name}: Ready={ready.get('status')} ({ready.get('message','')})")
             if synced and synced.get("status") != "True":
-              drift.append(f"AlertRule/{name}: Synced={synced.get('status')} ({synced.get('message','')})")
+              drift.append(f"RuleGroup/{name}: Synced={synced.get('status')} ({synced.get('message','')})")
 
           for d in drift:
             print(f"DRIFT: {d}")
@@ -149,9 +149,9 @@ jobs:
           PYEOF
           FOLDER_EXIT=$?
 
-          # Check Organization resources
+          # Check Organization resources (oss.grafana.crossplane.io)
           echo "Checking Organization resources..."
-          kubectl get organizations.grafana.crossplane.io \
+          kubectl get organizations.oss.grafana.crossplane.io \
             --all-namespaces \
             -o json 2>/dev/null | python3 - << 'PYEOF'
           import json, sys
@@ -226,20 +226,21 @@ jobs:
               except Exception:
                   pass
 
-          # Check 2: Alert rules referencing missing folders
+          # Check 2: RuleGroup/AlertRule rules referencing missing folders
           for f in repo_root.rglob("*.yaml"):
               if "_template" in str(f) or ".github" in str(f):
                   continue
               try:
                   with open(f) as fh:
                       for doc in yaml.safe_load_all(fh.read()):
-                          if doc and doc.get("kind") == "AlertRule":
+                          if doc and doc.get("kind") in ("AlertRule", "RuleGroup"):
                               folder_uid = doc.get("spec", {}).get("forProvider", {}).get("folderUid")
                               name = doc.get("metadata", {}).get("name", "unknown")
+                              kind = doc.get("kind")
                               if folder_uid and folder_uid not in folders:
                                   drift_items.append({
                                       "type": "MISSING_FOLDER_REF",
-                                      "resource": f"AlertRule/{name}",
+                                      "resource": f"{kind}/{name}",
                                       "detail": f"References folderUid '{folder_uid}' which does not exist",
                                       "file": str(f)
                                   })

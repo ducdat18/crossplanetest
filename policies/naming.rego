@@ -24,6 +24,11 @@ deny[msg] {
 }
 
 deny[msg] {
+    input.kind == "RuleGroup"
+    msg := rule_group_violations[_]
+}
+
+deny[msg] {
     input.kind == "Folder"
     msg := folder_violations[_]
 }
@@ -47,6 +52,11 @@ warn[msg] {
 warn[msg] {
     input.kind == "AlertRule"
     msg := alert_rule_warnings[_]
+}
+
+warn[msg] {
+    input.kind == "RuleGroup"
+    msg := rule_group_warnings[_]
 }
 
 # ============================================================================
@@ -255,6 +265,79 @@ org_violations[msg] {
     name := input.spec.forProvider.name
     not re_match(`^ORG-[A-Z][a-zA-Z0-9]+-[0-9]{4}$`, name)
     msg := sprintf("ERROR [ORG-001]: Organization name '%v' violates naming convention. Pattern: ^ORG-[A-Z][a-zA-Z0-9]+-[0-9]{4}$. Example: ORG-Platform-2025", [name])
+}
+
+# ============================================================================
+# RuleGroup Validations (alerting.grafana.crossplane.io/v1alpha1)
+# Each rule inside the group must follow AlertRule naming convention
+# ============================================================================
+
+rule_group_violations[msg] {
+    not input.spec.forProvider.folderUid
+    not input.spec.forProvider.folderRef
+    msg := "ERROR [RG-001]: RuleGroup spec.forProvider.folderUid or folderRef is required"
+}
+
+rule_group_violations[msg] {
+    not input.spec.forProvider.organizationRef
+    not input.spec.forProvider.orgId
+    msg := "ERROR [RG-002]: RuleGroup spec.forProvider.organizationRef or orgId is required"
+}
+
+rule_group_violations[msg] {
+    not input.spec.forProvider.rule
+    msg := "ERROR [RG-003]: RuleGroup spec.forProvider.rule[] must contain at least one rule"
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    name := rule.name
+    not re_match(`^[A-Z]{2,6}-[A-Z]+-(CRIT|WARN|INFO)-[a-z0-9-]+$`, name)
+    msg := sprintf("ERROR [RG-004]: RuleGroup rule name '%v' violates naming convention. Pattern: ^[A-Z]{2,6}-[A-Z]+-(CRIT|WARN|INFO)-[a-z0-9-]+$", [name])
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    not rule.labels.tier
+    msg := sprintf("ERROR [RG-005]: RuleGroup rule '%v' missing labels.tier", [rule.name])
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    tier := rule.labels.tier
+    valid_tiers := {"ultra-rt", "real-time", "nrt", "standard", "degraded", "trend", "daily"}
+    not tier in valid_tiers
+    msg := sprintf("ERROR [RG-006]: RuleGroup rule '%v' has invalid tier '%v'", [rule.name, tier])
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    not rule.labels.template_id
+    msg := sprintf("ERROR [RG-007]: RuleGroup rule '%v' missing labels.template_id (e.g., TPL-ALERT-001)", [rule.name])
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    not rule.annotations.summary
+    msg := sprintf("ERROR [RG-008]: RuleGroup rule '%v' missing annotations.summary", [rule.name])
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    not rule.annotations.runbook_url
+    msg := sprintf("ERROR [RG-009]: RuleGroup rule '%v' missing annotations.runbook_url", [rule.name])
+}
+
+rule_group_violations[msg] {
+    rule := input.spec.forProvider.rule[_]
+    not rule.data
+    msg := sprintf("ERROR [RG-010]: RuleGroup rule '%v' missing data[] query definitions", [rule.name])
+}
+
+rule_group_warnings[msg] {
+    rule := input.spec.forProvider.rule[_]
+    not rule.annotations.description
+    msg := sprintf("WARN [RG-W001]: RuleGroup rule '%v' should have annotations.description", [rule.name])
 }
 
 # ============================================================================

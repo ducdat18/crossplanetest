@@ -44,67 +44,37 @@ jobs:
           cache: 'pip'
 
       - name: Install Python dependencies
-        run: |
-          pip install PyYAML jsonschema
-
-      - name: Install OPA
-        run: |
-          curl -L -o /usr/local/bin/opa \
-            https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
-          chmod +x /usr/local/bin/opa
-          opa version
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v44
-        with:
-          files: |
-            orgs/**/*.yaml
-            templates/**/*.yaml
-            config/**/*.yaml
+        run: pip install PyYAML jsonschema
 
       - name: Run manifest validation
         id: validate
         run: |
-          # Run full validation on changed + all for cross-reference checks
           echo "=== Running manifest validation ==="
 
-          # Validate changed files specifically
-          if [ -n "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
-            echo "Changed files:"
-            for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-              echo "  - $file"
-            done
-          fi
-
-          # Run full directory validation with cross-checks
           set +e
           python scripts/validate.py --dir . --cross-check --verbose 2>&1 | tee /tmp/validation-output.txt
           VALIDATE_EXIT=$?
           set -e
 
-          # Parse results
-          ERROR_COUNT=$(grep -c "^ERROR:" /tmp/validation-output.txt 2>/dev/null || echo 0)
-          WARN_COUNT=$(grep -c "^WARN:" /tmp/validation-output.txt 2>/dev/null || echo 0)
+          # validate.py prints errors as "  ERROR: ..." with 2-space indent
+          ERROR_COUNT=$(grep -cE "^\s+ERROR:" /tmp/validation-output.txt 2>/dev/null || echo 0)
+          WARN_COUNT=$(grep -cE "^\s+WARN:" /tmp/validation-output.txt 2>/dev/null || echo 0)
 
           echo "error_count=${ERROR_COUNT}" >> $GITHUB_OUTPUT
           echo "warning_count=${WARN_COUNT}" >> $GITHUB_OUTPUT
 
-          if [ $VALIDATE_EXIT -eq 0 ]; then
+          if [ "$VALIDATE_EXIT" -eq 0 ]; then
             echo "status=passed" >> $GITHUB_OUTPUT
             echo "summary=All validations passed" >> $GITHUB_OUTPUT
-          elif [ $VALIDATE_EXIT -eq 2 ]; then
+          elif [ "$VALIDATE_EXIT" -eq 2 ]; then
             echo "status=warnings" >> $GITHUB_OUTPUT
-            echo "summary=Validation passed with ${WARN_COUNT} warning(s)" >> $GITHUB_OUTPUT
+            echo "summary=Passed with ${WARN_COUNT} warning(s)" >> $GITHUB_OUTPUT
           else
             echo "status=failed" >> $GITHUB_OUTPUT
-            echo "summary=Validation FAILED: ${ERROR_COUNT} error(s), ${WARN_COUNT} warning(s)" >> $GITHUB_OUTPUT
+            echo "summary=FAILED: ${ERROR_COUNT} error(s), ${WARN_COUNT} warning(s)" >> $GITHUB_OUTPUT
           fi
 
-          # Save output for report
           cp /tmp/validation-output.txt /tmp/validation-result.txt
-
-          # Don't fail this step yet - we'll report and then fail
           exit 0
 
       - name: Upload validation results
@@ -120,92 +90,144 @@ jobs:
     outputs:
       opa_status: ${{ steps.opa.outputs.status }}
       opa_summary: ${{ steps.opa.outputs.summary }}
+      opa_violation_count: ${{ steps.opa.outputs.violation_count }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyYAML
 
       - name: Install OPA
         run: |
-          curl -L -o /usr/local/bin/opa \
+          curl -sSL -o /usr/local/bin/opa \
             https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
           chmod +x /usr/local/bin/opa
+          opa version
 
-      - name: Validate OPA policies syntax
-        id: opa
+      - name: Validate OPA policy syntax
         run: |
           echo "=== Checking OPA policy syntax ==="
+          opa check policies/
 
-          set +e
-          OPA_OUTPUT=$(opa check policies/ 2>&1)
-          OPA_EXIT=$?
-          set -e
+      - name: Evaluate OPA policies against changed manifests
+        id: opa
+        run: |
+          echo "=== Evaluating OPA policies against manifests ==="
 
-          echo "$OPA_OUTPUT"
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
 
-          if [ $OPA_EXIT -eq 0 ]; then
+          # Get changed YAML files in orgs/ and templates/
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'orgs/**/*.yaml' 'templates/**/*.yaml' \
+            > /tmp/changed-files.txt 2>/dev/null || \
+          git diff --name-only HEAD~1 HEAD -- 'orgs/**/*.yaml' 'templates/**/*.yaml' \
+            > /tmp/changed-files.txt 2>/dev/null || true
+
+          echo "Changed YAML files:"
+          cat /tmp/changed-files.txt
+
+          VIOLATIONS=0
+          OPA_REPORT="/tmp/opa-violations.txt"
+          > "$OPA_REPORT"
+
+          # Evaluate each changed YAML file against naming policy
+          while IFS= read -r filepath; do
+            [ -z "$filepath" ] && continue
+            [ ! -f "$filepath" ] && continue
+
+            # Skip non-governance files
+            case "$filepath" in
+              argocd/*|provider/*|scripts/*|schemas/*|policies/*)
+                continue ;;
+            esac
+
+            echo "Checking: $filepath"
+
+            # Convert multi-doc YAML to individual JSON objects and run OPA
+            python3 << PYEOF
+          import sys, json, subprocess
+          from pathlib import Path
+          try:
+              import yaml
+          except ImportError:
+              sys.exit(0)
+
+          filepath = "$filepath"
+          try:
+              with open(filepath) as f:
+                  docs = list(yaml.safe_load_all(f.read()))
+          except Exception as e:
+              print(f"  SKIP: cannot parse {filepath}: {e}")
+              sys.exit(0)
+
+          violations_found = False
+          for doc in docs:
+              if not isinstance(doc, dict) or not doc.get("kind"):
+                  continue
+              kind = doc.get("kind")
+              # Skip non-governance kinds
+              if kind not in ("Dashboard","AlertRule","RuleGroup","Folder","Organization","DataSource","OrgMember"):
+                  continue
+              # Skip templates with placeholders
+              if "__" in json.dumps(doc):
+                  continue
+
+              input_json = json.dumps(doc)
+              # Run OPA eval for deny rules
+              result = subprocess.run(
+                  ["opa", "eval", "-d", "policies/naming.rego",
+                   "--stdin-input", "data.grafana.governance.naming.deny"],
+                  input=input_json, capture_output=True, text=True
+              )
+              if result.returncode == 0:
+                  try:
+                      out = json.loads(result.stdout)
+                      violations = out.get("result", [{}])[0].get("expressions", [{}])[0].get("value", [])
+                      if violations:
+                          print(f"  VIOLATIONS in {filepath} ({kind}/{doc.get('metadata',{}).get('name','?')}):")
+                          with open("$OPA_REPORT", "a") as rpt:
+                              for v in violations:
+                                  print(f"    - {v}")
+                                  rpt.write(f"[{filepath}] {v}\n")
+                          violations_found = True
+                  except Exception as e:
+                      print(f"  PARSE_ERROR: {e}")
+              else:
+                  print(f"  OPA_ERROR: {result.stderr}")
+
+          sys.exit(1 if violations_found else 0)
+          PYEOF
+            if [ $? -ne 0 ]; then
+              VIOLATIONS=$((VIOLATIONS + 1))
+            fi
+
+          done < /tmp/changed-files.txt
+
+          echo "violation_count=${VIOLATIONS}" >> $GITHUB_OUTPUT
+
+          if [ "$VIOLATIONS" -eq 0 ]; then
             echo "status=passed" >> $GITHUB_OUTPUT
-            echo "summary=OPA policies are syntactically valid" >> $GITHUB_OUTPUT
+            echo "summary=All changed manifests pass OPA policy checks" >> $GITHUB_OUTPUT
           else
             echo "status=failed" >> $GITHUB_OUTPUT
-            echo "summary=OPA policy check failed" >> $GITHUB_OUTPUT
+            echo "summary=OPA violations found in ${VIOLATIONS} file(s)" >> $GITHUB_OUTPUT
           fi
 
-          echo "$OPA_OUTPUT" > /tmp/opa-result.txt
-
-      - name: Run OPA tests on sample resources
-        run: |
-          echo "=== Running OPA policy evaluation tests ==="
-
-          # Test naming policy with a valid Dashboard
-          cat > /tmp/test-dashboard.json << 'EOF'
-          {
-            "kind": "Dashboard",
-            "apiVersion": "oss.grafana.crossplane.io/v1alpha1",
-            "metadata": {
-              "name": "plat-test-dashboard",
-              "labels": {
-                "template_id": "TPL-DASH-001",
-                "lifecycle": "production"
-              }
-            },
-            "spec": {
-              "providerConfigRef": {"name": "default"},
-              "forProvider": {
-                "configJson": "{\"title\":\"PLAT-test-dashboard-v1.0\",\"uid\":\"plat-test-dash\",\"schemaVersion\":39,\"panels\":[]}"
-              }
-            }
-          }
-          EOF
-
-          echo "Testing naming policy..."
-          opa eval -d policies/naming.rego \
-            -i /tmp/test-dashboard.json \
-            "data.grafana.governance.naming.deny" || true
-
-          echo "Testing RBAC policy..."
-          cat > /tmp/test-noc.json << 'EOF'
-          {
-            "kind": "NOCDefaultMemberList",
-            "apiVersion": "governance.grafana.io/v1",
-            "metadata": {"name": "test"},
-            "spec": {
-              "members": [
-                {"email": "noc-lead@vpbank.com.vn", "grafanaRole": "Admin"},
-                {"email": "noc-eng@vpbank.com.vn", "grafanaRole": "Editor"}
-              ]
-            }
-          }
-          EOF
-
-          opa eval -d policies/rbac.rego \
-            -i /tmp/test-noc.json \
-            "data.grafana.governance.rbac.deny" || true
-
-          echo "OPA evaluation tests completed"
+          cat "$OPA_REPORT" >> /tmp/opa-result.txt 2>/dev/null || true
+          echo "OPA check complete. Violations: $VIOLATIONS"
 
       - name: Upload OPA results
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: opa-results
           path: /tmp/opa-result.txt
@@ -236,23 +258,18 @@ jobs:
 
       - name: Generate change report
         id: report
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "=== Generating Change Report ==="
 
-          # Get diff vs base branch
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-
-          git diff --name-only $BASE_SHA $HEAD_SHA -- '*.yaml' > /tmp/changed-yaml-files.txt
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- '*.yaml' > /tmp/changed-yaml-files.txt
           echo "Changed YAML files:"
           cat /tmp/changed-yaml-files.txt
 
-          # Analyze changes using Python
           python3 << 'PYEOF'
-          import subprocess
-          import sys
-          import os
-
+          import subprocess, sys, os, json
           try:
               import yaml
           except ImportError:
@@ -262,11 +279,8 @@ jobs:
           base_sha = os.environ.get("BASE_SHA", "HEAD~1")
           head_sha = os.environ.get("HEAD_SHA", "HEAD")
 
-          added = []
-          modified = []
-          deleted = []
+          added, modified, deleted = [], [], []
 
-          # Read changed files list
           try:
               with open("/tmp/changed-yaml-files.txt") as f:
                   changed_files = [l.strip() for l in f if l.strip()]
@@ -274,7 +288,6 @@ jobs:
               changed_files = []
 
           for filepath in changed_files:
-              # Check if file exists in HEAD (current) and BASE
               try:
                   result_head = subprocess.run(
                       ["git", "show", f"{head_sha}:{filepath}"],
@@ -285,60 +298,53 @@ jobs:
                       capture_output=True, text=True
                   )
 
+                  def extract_resources(content):
+                      docs = []
+                      for doc in yaml.safe_load_all(content):
+                          if doc and doc.get("kind"):
+                              docs.append(f"{doc['kind']}/{doc.get('metadata',{}).get('name','unknown')}")
+                      return docs
+
                   if result_head.returncode != 0 and result_base.returncode == 0:
-                      # Deleted
-                      docs = list(yaml.safe_load_all(result_base.stdout))
-                      for doc in docs:
-                          if doc and doc.get("kind"):
-                              deleted.append(f"{doc['kind']}/{doc.get('metadata',{}).get('name','unknown')} ({filepath})")
+                      for r in extract_resources(result_base.stdout):
+                          deleted.append(f"{r} ({filepath})")
                   elif result_head.returncode == 0 and result_base.returncode != 0:
-                      # Added
-                      docs = list(yaml.safe_load_all(result_head.stdout))
-                      for doc in docs:
-                          if doc and doc.get("kind"):
-                              added.append(f"{doc['kind']}/{doc.get('metadata',{}).get('name','unknown')} ({filepath})")
+                      for r in extract_resources(result_head.stdout):
+                          added.append(f"{r} ({filepath})")
                   elif result_head.returncode == 0 and result_base.returncode == 0:
-                      # Modified
-                      docs = list(yaml.safe_load_all(result_head.stdout))
-                      for doc in docs:
-                          if doc and doc.get("kind"):
-                              modified.append(f"{doc['kind']}/{doc.get('metadata',{}).get('name','unknown')} ({filepath})")
+                      for r in extract_resources(result_head.stdout):
+                          modified.append(f"{r} ({filepath})")
               except Exception as e:
-                  print(f"Warning: Could not analyze {filepath}: {e}")
+                  print(f"Warning: {filepath}: {e}")
 
           with open("/tmp/change-report.txt", "w") as f:
               f.write("## Crossplane Resource Changes\n\n")
               if added:
-                  f.write(f"### Added ({len(added)})\n")
+                  f.write(f"### ✅ Added ({len(added)})\n")
                   for r in added:
-                      f.write(f"- {r}\n")
+                      f.write(f"- `{r}`\n")
                   f.write("\n")
               if modified:
-                  f.write(f"### Modified ({len(modified)})\n")
+                  f.write(f"### ✏️ Modified ({len(modified)})\n")
                   for r in modified:
-                      f.write(f"- {r}\n")
+                      f.write(f"- `{r}`\n")
                   f.write("\n")
               if deleted:
-                  f.write(f"### Deleted ({len(deleted)})\n")
+                  f.write(f"### 🗑️ Deleted ({len(deleted)})\n")
                   for r in deleted:
-                      f.write(f"- {r}\n")
+                      f.write(f"- `{r}`\n")
                   f.write("\n")
               if not added and not modified and not deleted:
-                  f.write("No resource changes detected.\n")
+                  f.write("_No Crossplane resource changes detected._\n")
 
-          print(f"Added: {len(added)}, Modified: {len(modified)}, Deleted: {len(deleted)}")
-
-          # Write to env
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"resources_added={len(added)}\n")
               f.write(f"resources_modified={len(modified)}\n")
               f.write(f"resources_deleted={len(deleted)}\n")
               f.write(f"summary=Added:{len(added)} Modified:{len(modified)} Deleted:{len(deleted)}\n")
 
+          print(f"Added:{len(added)} Modified:{len(modified)} Deleted:{len(deleted)}")
           PYEOF
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
 
       - name: Upload change report
         uses: actions/upload-artifact@v4
@@ -366,44 +372,36 @@ jobs:
           script: |
             const fs = require('fs');
 
-            // Read artifacts
-            let validationOutput = '';
-            let changeReport = '';
-            let opaOutput = '';
+            let validationOutput = 'Validation output not available';
+            let changeReport = 'Change report not available';
+            let opaOutput = 'No OPA violations';
 
-            try {
-              validationOutput = fs.readFileSync('/tmp/artifacts/validation-results/validation-result.txt', 'utf8');
-            } catch(e) { validationOutput = 'Validation output not available'; }
-
-            try {
-              changeReport = fs.readFileSync('/tmp/artifacts/change-report/change-report.txt', 'utf8');
-            } catch(e) { changeReport = 'Change report not available'; }
-
-            try {
-              opaOutput = fs.readFileSync('/tmp/artifacts/opa-results/opa-result.txt', 'utf8');
-            } catch(e) { opaOutput = 'OPA output not available'; }
+            try { validationOutput = fs.readFileSync('/tmp/artifacts/validation-results/validation-result.txt', 'utf8'); } catch(e) {}
+            try { changeReport = fs.readFileSync('/tmp/artifacts/change-report/change-report.txt', 'utf8'); } catch(e) {}
+            try { opaOutput = fs.readFileSync('/tmp/artifacts/opa-results/opa-result.txt', 'utf8') || 'No violations'; } catch(e) {}
 
             const validationStatus = '${{ needs.validate.outputs.validation_status }}';
             const opaStatus = '${{ needs.opa-check.outputs.opa_status }}';
             const errorCount = '${{ needs.validate.outputs.error_count }}';
             const warnCount = '${{ needs.validate.outputs.warning_count }}';
+            const opaViolations = '${{ needs.opa-check.outputs.opa_violation_count }}';
             const changeSummary = '${{ needs.change-report.outputs.change_summary }}';
 
             const validIcon = validationStatus === 'passed' ? '✅' : validationStatus === 'warnings' ? '⚠️' : '❌';
             const opaIcon = opaStatus === 'passed' ? '✅' : '❌';
 
-            const comment = `## 🔍 Grafana Governance Platform - Validation Report
+            const comment = `## 🔍 Grafana Governance Platform — Validation Report
 
             | Check | Status | Details |
             |-------|--------|---------|
-            | Manifest Validation | ${validIcon} ${validationStatus.toUpperCase()} | ${errorCount} errors, ${warnCount} warnings |
-            | OPA Policy Check | ${opaIcon} ${opaStatus.toUpperCase()} | ${{ needs.opa-check.outputs.opa_summary }} |
+            | Manifest Validation | ${validIcon} \`${validationStatus.toUpperCase()}\` | ${errorCount} errors, ${warnCount} warnings |
+            | OPA Policy Check | ${opaIcon} \`${opaStatus.toUpperCase()}\` | ${opaViolations} file(s) with violations |
             | Resource Changes | 📋 | ${changeSummary} |
 
             ${changeReport}
 
             <details>
-            <summary>Validation Output</summary>
+            <summary>📄 Validation Output</summary>
 
             \`\`\`
             ${validationOutput.slice(0, 8000)}
@@ -412,33 +410,32 @@ jobs:
             </details>
 
             <details>
-            <summary>OPA Policy Check Output</summary>
+            <summary>🔒 OPA Policy Violations</summary>
 
             \`\`\`
-            ${opaOutput.slice(0, 2000)}
+            ${opaOutput.slice(0, 3000) || 'No violations found'}
             \`\`\`
 
             </details>
 
             ---
-            *Generated by Grafana Governance Platform CI/CD*`;
+            *Generated by Grafana Governance Platform CI/CD — [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*`;
 
-            // Find existing comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
             });
 
-            const existingComment = comments.find(c =>
-              c.body.includes('Grafana Governance Platform - Validation Report')
+            const existing = comments.find(c =>
+              c.body.includes('Grafana Governance Platform — Validation Report')
             );
 
-            if (existingComment) {
+            if (existing) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: existingComment.id,
+                comment_id: existing.id,
                 body: comment,
               });
             } else {
@@ -457,24 +454,30 @@ jobs:
     if: always()
 
     steps:
-      - name: Fail if validation errors exist
+      - name: Fail if validation errors or OPA violations exist
         run: |
           VALIDATE_STATUS="${{ needs.validate.outputs.validation_status }}"
           OPA_STATUS="${{ needs.opa-check.outputs.opa_status }}"
           ERROR_COUNT="${{ needs.validate.outputs.error_count }}"
+          OPA_VIOLATIONS="${{ needs.opa-check.outputs.opa_violation_count }}"
 
-          echo "Validation status: $VALIDATE_STATUS"
-          echo "OPA status: $OPA_STATUS"
-          echo "Error count: $ERROR_COUNT"
+          echo "Validation status : $VALIDATE_STATUS ($ERROR_COUNT errors)"
+          echo "OPA status        : $OPA_STATUS ($OPA_VIOLATIONS files with violations)"
 
-          if [ "$VALIDATE_STATUS" == "failed" ]; then
-            echo "::error::Manifest validation failed with $ERROR_COUNT error(s). Fix errors before merging."
+          FAILED=0
+
+          if [ "$VALIDATE_STATUS" = "failed" ]; then
+            echo "::error::Manifest validation failed with $ERROR_COUNT error(s). Fix before merging."
+            FAILED=1
+          fi
+
+          if [ "$OPA_STATUS" = "failed" ]; then
+            echo "::error::OPA policy violations found in $OPA_VIOLATIONS file(s). Fix naming/policy issues before merging."
+            FAILED=1
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
             exit 1
           fi
 
-          if [ "$OPA_STATUS" == "failed" ]; then
-            echo "::error::OPA policy check failed. Fix policy syntax errors before merging."
-            exit 1
-          fi
-
-          echo "All validation gates passed."
+          echo "✅ All validation gates passed."
