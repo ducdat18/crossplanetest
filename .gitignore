@@ -1,0 +1,16 @@
+# Python cache
+scripts/__pycache__/
+*.pyc
+*.pyo
+
+# Credentials — KHÔNG commit file này lên Git
+aVGdBBnUGYZqXIIBghCvVRl6S4jOrO7vhbr.txt
+*.credentials
+secrets/
+
+# BRD doc (lớn, không cần trong repo code)
+BRD_Grafana_Governance_Platform_v1.0.docx
+
+# OS
+.DS_Store
+Thumbs.db

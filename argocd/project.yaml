@@ -1,0 +1,84 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: grafana-governance
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Grafana Governance & Automation Platform — GitOps via Crossplane"
+
+  # Git repo được phép sync
+  sourceRepos:
+    - https://github.com/ducdat18/crossplanetest.git
+
+  # Cluster đích
+  destinations:
+    - namespace: crossplane-system
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+
+  # Loại resource được phép deploy
+  clusterResourceWhitelist:
+    - group: pkg.crossplane.io
+      kind: Provider
+    - group: pkg.crossplane.io
+      kind: ProviderConfig
+    - group: apiextensions.crossplane.io
+      kind: CompositeResourceDefinition
+    - group: apiextensions.crossplane.io
+      kind: Composition
+
+  namespaceResourceWhitelist:
+    - group: grafana.crossplane.io
+      kind: ProviderConfig
+    - group: grafana.crossplane.io
+      kind: Organization
+    - group: grafana.crossplane.io
+      kind: OrgMember
+    - group: oss.grafana.crossplane.io
+      kind: Dashboard
+    - group: oss.grafana.crossplane.io
+      kind: Folder
+    - group: oss.grafana.crossplane.io
+      kind: AlertRule
+    - group: oss.grafana.crossplane.io
+      kind: ContactPoint
+    - group: oss.grafana.crossplane.io
+      kind: NotificationPolicy
+    - group: oss.grafana.crossplane.io
+      kind: DataSource
+    - group: ''
+      kind: Secret
+    - group: ''
+      kind: ConfigMap
+
+  # Orphaned resource monitoring — cảnh báo nếu có resource trên cluster không có trong Git
+  orphanedResources:
+    warn: true
+    ignore:
+      - group: ''
+        kind: Secret
+        name: "grafana-creds"
+
+  # Roles trong project
+  roles:
+    - name: platform-admin
+      description: Platform team — full access
+      policies:
+        - p, proj:grafana-governance:platform-admin, applications, *, grafana-governance/*, allow
+      groups:
+        - platform-team
+
+    - name: noc-viewer
+      description: NOC team — read-only
+      policies:
+        - p, proj:grafana-governance:noc-viewer, applications, get, grafana-governance/*, allow
+        - p, proj:grafana-governance:noc-viewer, applications, sync, grafana-governance/*, deny
+      groups:
+        - noc-team

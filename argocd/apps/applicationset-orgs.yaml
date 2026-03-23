@@ -1,0 +1,86 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: grafana-orgs
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: grafana-governance
+  annotations:
+    # ApplicationSet này tự động tạo 1 ArgoCD App cho mỗi thư mục trong orgs/
+    # Chỉ cần thêm thư mục mới vào orgs/ → ArgoCD App tự động xuất hiện
+spec:
+  # Tự động xóa App khi thư mục org bị xóa khỏi Git
+  syncPolicy:
+    preserveResourcesOnDeletion: false
+
+  generators:
+    - git:
+        repoURL: https://github.com/ducdat18/crossplanetest.git
+        revision: main
+        directories:
+          - path: orgs/*        # Match mọi thư mục con của orgs/
+          - path: orgs/_template  # Exclude thư mục template
+            exclude: true
+
+  template:
+    metadata:
+      # Tên App = tên thư mục (vd: grafana-org-platform-2025)
+      name: "grafana-org-{{path.basename}}"
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: grafana-governance
+        layer: organization
+        org: "{{path.basename}}"
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+
+    spec:
+      project: grafana-governance
+
+      source:
+        repoURL: https://github.com/ducdat18/crossplanetest.git
+        targetRevision: main
+        path: "{{path}}"           # orgs/org-platform-2025, orgs/org-payments-2025, ...
+        directory:
+          recurse: true            # Include folders/, alerts/ subdirectories
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: crossplane-system
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+          - RespectIgnoreDifferences=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 15s
+            factor: 2
+            maxDuration: 2m
+
+      ignoreDifferences:
+        - group: oss.grafana.crossplane.io
+          kind: Dashboard
+          jsonPointers: [/status]
+        - group: oss.grafana.crossplane.io
+          kind: Folder
+          jsonPointers: [/status]
+        - group: oss.grafana.crossplane.io
+          kind: AlertRule
+          jsonPointers: [/status]
+        - group: grafana.crossplane.io
+          kind: Organization
+          jsonPointers: [/status]
+        - group: grafana.crossplane.io
+          kind: OrgMember
+          jsonPointers: [/status]
+
+      info:
+        - name: "Org Directory"
+          value: "{{path}}"

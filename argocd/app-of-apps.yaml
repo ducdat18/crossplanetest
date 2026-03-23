@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-governance-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: grafana-governance
+    layer: root
+  annotations:
+    # App-of-Apps pattern: app này quản lý tất cả các app khác
+    argocd.argoproj.io/sync-wave: "-20"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: grafana-governance
+
+  source:
+    repoURL: https://github.com/ducdat18/crossplanetest.git
+    targetRevision: main
+    path: argocd/apps       # Sync tất cả Application/ApplicationSet trong argocd/apps/
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+
+  info:
+    - name: "Pattern"
+      value: "App-of-Apps — manages all grafana-governance applications"
+    - name: "Docs"
+      value: "https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/"

@@ -1,0 +1,222 @@
+# Template ID: TPL-DASH-002
+# Description: gRPC Service Overview - RPC rate, error rate, p99 latency
+# Usage: Use code-generator.py generate-dashboard --template TPL-DASH-002 --name <name> --datasource-uid <uid>
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: tpl-dash-002-grpc-service-overview
+  labels:
+    template_id: TPL-DASH-002
+    lifecycle: production
+    tier: real-time
+    dashboard-type: service-overview
+    protocol: grpc
+  annotations:
+    governance.grafana.io/template-id: "TPL-DASH-002"
+    governance.grafana.io/locked-sections: "header,datasource-variables"
+    governance.grafana.io/customizable-sections: "thresholds,time-range,panel-layout"
+    governance.grafana.io/description: "gRPC Service Overview template - monitors RPC rate, error rate, p99 latency per method"
+    governance.grafana.io/owner-team: "TEAM-PLAT-sre-oncall"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    folder: "plat-realtime"
+    overwrite: true
+    message: "TPL-DASH-002 gRPC Service Overview v1.0"
+    configJson: |
+      {
+        "title": "PLAT-grpc-service-overview-v1.0",
+        "uid": "tpl-dash-002-grpc-svc",
+        "description": "gRPC Service Overview - monitors RPC rate, error rate, and p99 latency per method and service",
+        "schemaVersion": 39,
+        "version": 1,
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": { "from": "now-1h", "to": "now" },
+        "tags": ["grpc", "service", "overview", "TPL-DASH-002"],
+        "templating": {
+          "list": [
+            {
+              "name": "datasource",
+              "type": "datasource",
+              "pluginId": "prometheus",
+              "label": "Prometheus Datasource",
+              "hide": 0,
+              "refresh": 1
+            },
+            {
+              "name": "job",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(grpc_server_handled_total, job)",
+              "label": "Service / Job",
+              "hide": 0,
+              "refresh": 2,
+              "sort": 1
+            },
+            {
+              "name": "grpc_method",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(grpc_server_handled_total{job=\"$job\"}, grpc_method)",
+              "label": "gRPC Method",
+              "hide": 0,
+              "refresh": 2,
+              "includeAll": true,
+              "allValue": ".*",
+              "multi": true
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "type": "stat",
+            "title": "RPC Rate (calls/s)",
+            "description": "Total gRPC calls per second",
+            "gridPos": { "x": 0, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 500 }, { "color": "red", "value": 2000 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(rate(grpc_server_handled_total{job=\"$job\"}[5m]))",
+                "refId": "A", "legendFormat": "RPC/s"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "type": "stat",
+            "title": "Error Rate",
+            "description": "Percentage of gRPC calls with non-OK status codes",
+            "gridPos": { "x": 6, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(rate(grpc_server_handled_total{job=\"$job\",grpc_code!=\"OK\"}[5m])) / sum(rate(grpc_server_handled_total{job=\"$job\"}[5m]))",
+                "refId": "A", "legendFormat": "Error Rate"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "type": "stat",
+            "title": "P99 Latency",
+            "description": "99th percentile gRPC call duration",
+            "gridPos": { "x": 12, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.5 }, { "color": "red", "value": 1 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "histogram_quantile(0.99, sum by (le) (rate(grpc_server_handling_seconds_bucket{job=\"$job\"}[5m])))",
+                "refId": "A", "legendFormat": "P99"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "type": "stat",
+            "title": "In-flight Streams",
+            "description": "Active streaming gRPC connections",
+            "gridPos": { "x": 18, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 500 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(grpc_server_started_total{job=\"$job\"}) - sum(grpc_server_handled_total{job=\"$job\"})",
+                "refId": "A", "legendFormat": "In-flight"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "type": "timeseries",
+            "title": "RPC Rate by Method",
+            "description": "gRPC call rate broken down by method",
+            "gridPos": { "x": 0, "y": 4, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (grpc_method) (rate(grpc_server_handled_total{job=\"$job\",grpc_method=~\"$grpc_method\"}[5m]))",
+                "refId": "A", "legendFormat": "{{grpc_method}}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "type": "timeseries",
+            "title": "Error Rate by Status Code",
+            "description": "gRPC errors broken down by gRPC status code",
+            "gridPos": { "x": 12, "y": 4, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "percentunit", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (grpc_code) (rate(grpc_server_handled_total{job=\"$job\",grpc_code!=\"OK\"}[5m])) / sum(rate(grpc_server_handled_total{job=\"$job\"}[5m]))",
+                "refId": "A", "legendFormat": "{{grpc_code}}"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "type": "timeseries",
+            "title": "Latency Percentiles by Method",
+            "description": "P50, P95, P99 gRPC call duration per method",
+            "gridPos": { "x": 0, "y": 12, "h": 8, "w": 24 },
+            "fieldConfig": {
+              "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "histogram_quantile(0.50, sum by (le, grpc_method) (rate(grpc_server_handling_seconds_bucket{job=\"$job\",grpc_method=~\"$grpc_method\"}[5m])))",
+                "refId": "A", "legendFormat": "P50 - {{grpc_method}}"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "histogram_quantile(0.99, sum by (le, grpc_method) (rate(grpc_server_handling_seconds_bucket{job=\"$job\",grpc_method=~\"$grpc_method\"}[5m])))",
+                "refId": "B", "legendFormat": "P99 - {{grpc_method}}"
+              }
+            ]
+          }
+        ]
+      }

@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-org-platform-2025
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: grafana-governance
+    layer: organization
+    org: org-platform-2025
+    team: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    # Link nhanh đến Grafana org
+    link.argocd.argoproj.io/grafana-org: "http://grafana-prod.monitoring.svc.cluster.local:80/org/1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: grafana-governance
+
+  source:
+    repoURL: https://github.com/ducdat18/crossplanetest.git
+    targetRevision: main
+    path: orgs/org-platform-2025
+    # Sync tất cả subdirectory: folders/, alerts/, org.yaml, members.yaml
+    directory:
+      recurse: true
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+
+  syncPolicy:
+    automated:
+      prune: true        # Xóa resource trên K8s nếu xóa file khỏi Git
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 2m
+
+  ignoreDifferences:
+    # Crossplane tự update status — ArgoCD không cần quan tâm
+    - group: oss.grafana.crossplane.io
+      kind: Dashboard
+      jsonPointers: [/status]
+    - group: oss.grafana.crossplane.io
+      kind: Folder
+      jsonPointers: [/status]
+    - group: oss.grafana.crossplane.io
+      kind: AlertRule
+      jsonPointers: [/status]
+    - group: grafana.crossplane.io
+      kind: Organization
+      jsonPointers: [/status]
+    - group: grafana.crossplane.io
+      kind: OrgMember
+      jsonPointers: [/status]
+
+  info:
+    - name: "Org"
+      value: "ORG-Platform-2025"
+    - name: "Team"
+      value: "Platform Engineering"
+    - name: "NOC Managed"
+      value: "true"

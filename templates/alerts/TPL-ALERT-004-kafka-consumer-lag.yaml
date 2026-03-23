@@ -1,0 +1,100 @@
+# Template ID: TPL-ALERT-004
+# Description: Kafka Consumer Lag alert - fires when consumer group lag exceeds threshold
+# Tier: standard | Severity: warning | Interval: 10m
+# Usage: Use code-generator.py generate-alert --template TPL-ALERT-004 --name <name> --interval 10m
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: AlertRule
+metadata:
+  name: tpl-alert-004-kafka-consumer-lag
+  labels:
+    template_id: TPL-ALERT-004
+    tier: standard
+    severity: warning
+    component: kafka
+    alert-type: consumer-lag
+  annotations:
+    governance.grafana.io/template-id: "TPL-ALERT-004"
+    governance.grafana.io/description: "Template for Kafka consumer lag alerting. Default threshold: >10000 messages."
+    governance.grafana.io/customizable: "threshold (default 10000), topic, consumer_group, for duration"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    name: "PLAT-KAFKA-WARN-consumer-lag-high"
+    folderUid: "plat-standard"
+    ruleGroup: "kafka-alerts"
+    noDataState: "NoData"
+    execErrState: "Error"
+    for: "10m"
+    isPaused: false
+    annotations:
+      summary: "Kafka consumer group {{ $labels.consumergroup }} lag exceeds 10,000 on topic {{ $labels.topic }}"
+      description: |
+        Consumer group {{ $labels.consumergroup }} is falling behind on topic {{ $labels.topic }}.
+        Current lag: {{ $value | humanize }} messages
+        Lag has been above 10,000 messages for more than 10 minutes.
+        This may indicate a slow consumer, increased producer throughput, or consumer group rebalancing.
+        Check consumer application logs, CPU/memory usage, and network connectivity.
+      runbook_url: "https://wiki.vpbank.com.vn/runbooks/kafka-consumer-lag"
+      dashboard_url: "https://grafana.vpbank.com.vn/d/tpl-dash-006-kafka"
+    labels:
+      tier: "standard"
+      severity: "warning"
+      template_id: "TPL-ALERT-004"
+      alert_type: "consumer-lag"
+      component: "kafka"
+    data:
+      - refId: "A"
+        queryType: ""
+        relativeTimeRange:
+          from: 900
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            sum by (consumergroup, topic) (
+              kafka_consumergroup_lag{
+                job="__kafka_job__",
+                topic=~"__topic__",
+                consumergroup=~"__consumer_group__"
+              }
+            )
+          refId: "A"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "B"
+        queryType: ""
+        relativeTimeRange:
+          from: 900
+          to: 0
+        datasourceUid: "__expr__"
+        model:
+          conditions:
+            - evaluator:
+                params:
+                  - 10000
+                type: "gt"
+              operator:
+                type: "and"
+              query:
+                params:
+                  - "A"
+              reducer:
+                params: []
+                type: "last"
+              type: "query"
+          datasource:
+            type: "__expr__"
+            uid: "__expr__"
+          expression: "A"
+          hide: false
+          intervalMs: 1000
+          maxDataPoints: 43200
+          refId: "B"
+          type: "threshold"

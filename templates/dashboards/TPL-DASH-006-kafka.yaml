@@ -1,0 +1,242 @@
+# Template ID: TPL-DASH-006
+# Description: Kafka Overview - consumer lag, throughput, partition health
+# Usage: Use code-generator.py generate-dashboard --template TPL-DASH-006 --name <name> --datasource-uid <uid>
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: tpl-dash-006-kafka
+  labels:
+    template_id: TPL-DASH-006
+    lifecycle: production
+    tier: standard
+    dashboard-type: messaging
+    component: kafka
+  annotations:
+    governance.grafana.io/template-id: "TPL-DASH-006"
+    governance.grafana.io/locked-sections: "header,datasource-variables"
+    governance.grafana.io/customizable-sections: "thresholds,time-range"
+    governance.grafana.io/description: "Kafka template - consumer lag by topic, throughput msgs/sec, partition health"
+    governance.grafana.io/owner-team: "TEAM-PLAT-sre-oncall"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    folder: "plat-standard"
+    overwrite: true
+    message: "TPL-DASH-006 Kafka v1.0"
+    configJson: |
+      {
+        "title": "PLAT-kafka-v1.0",
+        "uid": "tpl-dash-006-kafka",
+        "description": "Kafka Overview - consumer lag by topic, message throughput, and partition health",
+        "schemaVersion": 39,
+        "version": 1,
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": { "from": "now-1h", "to": "now" },
+        "tags": ["kafka", "messaging", "streaming", "TPL-DASH-006"],
+        "templating": {
+          "list": [
+            {
+              "name": "datasource",
+              "type": "datasource",
+              "pluginId": "prometheus",
+              "label": "Prometheus Datasource",
+              "hide": 0,
+              "refresh": 1
+            },
+            {
+              "name": "kafka_cluster",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(kafka_brokers, job)",
+              "label": "Kafka Cluster",
+              "hide": 0,
+              "refresh": 2
+            },
+            {
+              "name": "topic",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(kafka_topic_partitions{job=\"$kafka_cluster\"}, topic)",
+              "label": "Topic",
+              "hide": 0,
+              "refresh": 2,
+              "includeAll": true,
+              "allValue": ".*",
+              "multi": true
+            },
+            {
+              "name": "consumer_group",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(kafka_consumergroup_lag{job=\"$kafka_cluster\",topic=~\"$topic\"}, consumergroup)",
+              "label": "Consumer Group",
+              "hide": 0,
+              "refresh": 2,
+              "includeAll": true,
+              "allValue": ".*",
+              "multi": true
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "type": "stat",
+            "title": "Total Consumer Lag",
+            "description": "Total messages behind across all consumer groups and topics",
+            "gridPos": { "x": 0, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1000 }, { "color": "red", "value": 10000 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(kafka_consumergroup_lag{job=\"$kafka_cluster\",topic=~\"$topic\",consumergroup=~\"$consumer_group\"})",
+                "refId": "A", "legendFormat": "Total Lag"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "type": "stat",
+            "title": "Messages In/sec",
+            "description": "Total message ingestion rate across all topics",
+            "gridPos": { "x": 6, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "msgps",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50000 }, { "color": "red", "value": 100000 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(rate(kafka_topic_partition_current_offset{job=\"$kafka_cluster\",topic=~\"$topic\"}[5m]))",
+                "refId": "A", "legendFormat": "Messages/s"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "type": "stat",
+            "title": "Under-Replicated Partitions",
+            "description": "Partitions not fully replicated (should be 0)",
+            "gridPos": { "x": 12, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(kafka_topic_partition_under_replicated_partition{job=\"$kafka_cluster\",topic=~\"$topic\"})",
+                "refId": "A", "legendFormat": "Under-Replicated"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "type": "stat",
+            "title": "Offline Partitions",
+            "description": "Number of offline partitions (should be 0)",
+            "gridPos": { "x": 18, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "kafka_controller_kafkacontroller_offlinepartitionscount{job=\"$kafka_cluster\"}",
+                "refId": "A", "legendFormat": "Offline Partitions"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "type": "timeseries",
+            "title": "Consumer Lag by Topic",
+            "description": "Consumer group lag per topic over time",
+            "gridPos": { "x": 0, "y": 4, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (topic, consumergroup) (kafka_consumergroup_lag{job=\"$kafka_cluster\",topic=~\"$topic\",consumergroup=~\"$consumer_group\"})",
+                "refId": "A", "legendFormat": "{{consumergroup}} - {{topic}}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "type": "timeseries",
+            "title": "Message Throughput by Topic",
+            "description": "Messages per second produced per topic",
+            "gridPos": { "x": 12, "y": 4, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "msgps", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (topic) (rate(kafka_topic_partition_current_offset{job=\"$kafka_cluster\",topic=~\"$topic\"}[5m]))",
+                "refId": "A", "legendFormat": "{{topic}}"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "type": "table",
+            "title": "Partition Health Summary",
+            "description": "Per-partition status: leader, replicas, in-sync replicas",
+            "gridPos": { "x": 0, "y": 12, "h": 8, "w": 24 },
+            "fieldConfig": {
+              "defaults": { "custom": { "align": "auto" } },
+              "overrides": [
+                {
+                  "matcher": { "id": "byName", "options": "Value #under_replicated" },
+                  "properties": [
+                    { "id": "displayName", "value": "Under Replicated" },
+                    { "id": "custom.displayMode", "value": "color-background" },
+                    { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }
+                  ]
+                }
+              ]
+            },
+            "options": { "sortBy": [{ "displayName": "Under Replicated", "desc": true }] },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "kafka_topic_partition_under_replicated_partition{job=\"$kafka_cluster\",topic=~\"$topic\"}",
+                "refId": "A", "legendFormat": "{{topic}} - partition {{partition}}",
+                "instant": true, "format": "table"
+              }
+            ],
+            "transformations": [
+              { "id": "organize", "options": { "renameByName": { "topic": "Topic", "partition": "Partition", "Value": "Under Replicated" } } }
+            ]
+          }
+        ]
+      }

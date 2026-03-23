@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: ${ORG_CODE_LOWER}-standard-folder
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    tier: standard
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "standard"
+    governance.grafana.io/alert-interval: "5m-15m"
+    governance.grafana.io/notification: "Slack #alerts-standard"
+    governance.grafana.io/severity: "warning"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "${ORG_CODE}/Standard"
+    uid: "${ORG_CODE_LOWER}-standard"
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}

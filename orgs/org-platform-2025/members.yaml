@@ -1,0 +1,135 @@
+# OrgMember resources for ORG-Platform-2025
+# NOC members auto-injected from config/noc/noc-default-members.yaml
+# Platform team members added manually
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-noc-lead
+  labels:
+    org: org-platform-2025
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-lead@vpbank.com.vn
+    role: Admin
+    orgIdRef:
+      name: org-platform-2025
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-noc-engineer-1
+  labels:
+    org: org-platform-2025
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-engineer-1@vpbank.com.vn
+    role: Editor
+    orgIdRef:
+      name: org-platform-2025
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-noc-engineer-2
+  labels:
+    org: org-platform-2025
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-engineer-2@vpbank.com.vn
+    role: Editor
+    orgIdRef:
+      name: org-platform-2025
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-noc-viewer-1
+  labels:
+    org: org-platform-2025
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-viewer-1@vpbank.com.vn
+    role: Viewer
+    orgIdRef:
+      name: org-platform-2025
+---
+# Platform Team Members
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-sre-lead
+  labels:
+    org: org-platform-2025
+    source: manual
+    role-group: platform-sre
+  annotations:
+    governance.grafana.io/team: "TEAM-PLAT-sre-oncall"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: sre-lead@vpbank.com.vn
+    role: Admin
+    orgIdRef:
+      name: org-platform-2025
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-sre-engineer-1
+  labels:
+    org: org-platform-2025
+    source: manual
+    role-group: platform-sre
+  annotations:
+    governance.grafana.io/team: "TEAM-PLAT-sre-oncall"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: sre-engineer-1@vpbank.com.vn
+    role: Editor
+    orgIdRef:
+      name: org-platform-2025
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-platform-2025-platform-viewer-1
+  labels:
+    org: org-platform-2025
+    source: manual
+    role-group: platform-dev
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: dev-viewer-1@vpbank.com.vn
+    role: Viewer
+    orgIdRef:
+      name: org-platform-2025

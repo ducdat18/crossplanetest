@@ -1,0 +1,97 @@
+# Template ID: TPL-ALERT-002
+# Description: P99 Latency alert - fires when p99 request latency exceeds threshold
+# Tier: nrt | Severity: warning | Interval: 5m
+# Usage: Use code-generator.py generate-alert --template TPL-ALERT-002 --name <name> --interval 5m
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: AlertRule
+metadata:
+  name: tpl-alert-002-p99-latency
+  labels:
+    template_id: TPL-ALERT-002
+    tier: nrt
+    severity: warning
+    protocol: http
+    alert-type: latency
+  annotations:
+    governance.grafana.io/template-id: "TPL-ALERT-002"
+    governance.grafana.io/description: "Template for P99 latency alerting. Threshold: >2s over 5m window."
+    governance.grafana.io/customizable: "threshold (default 2.0), job label, for duration"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    name: "PLAT-API-WARN-p99-latency-high"
+    folderUid: "plat-nearrealtime"
+    ruleGroup: "latency-alerts"
+    noDataState: "NoData"
+    execErrState: "Error"
+    for: "5m"
+    isPaused: false
+    annotations:
+      summary: "P99 request latency exceeds 2s on {{ $labels.job }}"
+      description: |
+        The 99th percentile request latency for service {{ $labels.job }} has exceeded 2000ms over the last 5 minutes.
+        Current P99 value: {{ $value | humanizeDuration }}
+        Users may be experiencing slow responses. Investigate upstream service dependencies, database connection pools, and resource saturation.
+        Check if a recent deployment changed query patterns or if there is resource exhaustion.
+      runbook_url: "https://wiki.vpbank.com.vn/runbooks/high-latency"
+      dashboard_url: "https://grafana.vpbank.com.vn/d/tpl-dash-001-http-svc"
+    labels:
+      tier: "nrt"
+      severity: "warning"
+      template_id: "TPL-ALERT-002"
+      alert_type: "latency"
+      protocol: "http"
+    data:
+      - refId: "A"
+        queryType: ""
+        relativeTimeRange:
+          from: 600
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le) (
+                rate(http_request_duration_seconds_bucket{job="__job__"}[5m])
+              )
+            )
+          refId: "A"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "B"
+        queryType: ""
+        relativeTimeRange:
+          from: 600
+          to: 0
+        datasourceUid: "__expr__"
+        model:
+          conditions:
+            - evaluator:
+                params:
+                  - 2.0
+                type: "gt"
+              operator:
+                type: "and"
+              query:
+                params:
+                  - "A"
+              reducer:
+                params: []
+                type: "last"
+              type: "query"
+          datasource:
+            type: "__expr__"
+            uid: "__expr__"
+          expression: "A"
+          hide: false
+          intervalMs: 1000
+          maxDataPoints: 43200
+          refId: "B"
+          type: "threshold"

@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: plat-realtime-folder
+  labels:
+    org: org-platform-2025
+    tier: real-time
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "real-time"
+    governance.grafana.io/alert-interval: "30s-1m"
+    governance.grafana.io/notification: "PagerDuty + Slack #alerts-critical"
+    governance.grafana.io/severity: "critical"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "PLAT/RealTime"
+    uid: "plat-realtime"
+    orgIdRef:
+      name: org-platform-2025

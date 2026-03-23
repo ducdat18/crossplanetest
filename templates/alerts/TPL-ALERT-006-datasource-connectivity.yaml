@@ -1,0 +1,98 @@
+# Template ID: TPL-ALERT-006
+# Description: Datasource Connectivity alert - fires when a Prometheus/datasource target is down
+# Tier: real-time | Severity: critical | Interval: 30s
+# Usage: Use code-generator.py generate-alert --template TPL-ALERT-006 --name <name> --interval 30s
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: AlertRule
+metadata:
+  name: tpl-alert-006-datasource-connectivity
+  labels:
+    template_id: TPL-ALERT-006
+    tier: real-time
+    severity: critical
+    component: datasource
+    alert-type: connectivity
+  annotations:
+    governance.grafana.io/template-id: "TPL-ALERT-006"
+    governance.grafana.io/description: "Template for datasource/target connectivity monitoring. Fires when up == 0."
+    governance.grafana.io/customizable: "job label, instance label, for duration"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    name: "NOC-DS-CRIT-datasource-connectivity-lost"
+    folderUid: "plat-realtime"
+    ruleGroup: "infrastructure-connectivity-alerts"
+    noDataState: "Alerting"
+    execErrState: "Alerting"
+    for: "30s"
+    isPaused: false
+    annotations:
+      summary: "Monitoring target {{ $labels.instance }} ({{ $labels.job }}) is DOWN"
+      description: |
+        Prometheus scrape target {{ $labels.instance }} for job {{ $labels.job }} is unreachable.
+        The target has been down for more than 30 seconds.
+        This means metrics from this target are no longer being collected.
+        Impact: All dashboards and alerts relying on this datasource/target will show no data.
+        Investigate:
+        1. Check if the service/exporter is running
+        2. Check network connectivity and firewall rules
+        3. Check if the service endpoint has changed
+        4. Review Prometheus targets page: check /targets for scrape errors
+      runbook_url: "https://wiki.vpbank.com.vn/runbooks/datasource-connectivity"
+      dashboard_url: "https://grafana.vpbank.com.vn/d/prometheus-targets"
+    labels:
+      tier: "real-time"
+      severity: "critical"
+      template_id: "TPL-ALERT-006"
+      alert_type: "connectivity"
+      component: "datasource"
+    data:
+      - refId: "A"
+        queryType: ""
+        relativeTimeRange:
+          from: 300
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            up{job=~"__job__"} == 0
+          refId: "A"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "B"
+        queryType: ""
+        relativeTimeRange:
+          from: 300
+          to: 0
+        datasourceUid: "__expr__"
+        model:
+          conditions:
+            - evaluator:
+                params:
+                  - 0
+                type: "gt"
+              operator:
+                type: "and"
+              query:
+                params:
+                  - "A"
+              reducer:
+                params: []
+                type: "last"
+              type: "query"
+          datasource:
+            type: "__expr__"
+            uid: "__expr__"
+          expression: "A"
+          hide: false
+          intervalMs: 1000
+          maxDataPoints: 43200
+          refId: "B"
+          type: "threshold"

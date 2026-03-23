@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: plat-standard-folder
+  labels:
+    org: org-platform-2025
+    tier: standard
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "standard"
+    governance.grafana.io/alert-interval: "5m-15m"
+    governance.grafana.io/notification: "Slack #alerts-standard"
+    governance.grafana.io/severity: "warning"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "PLAT/Standard"
+    uid: "plat-standard"
+    orgIdRef:
+      name: org-platform-2025

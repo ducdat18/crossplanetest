@@ -1,0 +1,147 @@
+# Template ID: TPL-ALERT-003
+# Description: Node Saturation alert - fires when CPU or memory exceeds saturation threshold
+# Tier: standard | Severity: warning | Interval: 10m
+# Usage: Use code-generator.py generate-alert --template TPL-ALERT-003 --name <name> --interval 10m
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: AlertRule
+metadata:
+  name: tpl-alert-003-node-saturation
+  labels:
+    template_id: TPL-ALERT-003
+    tier: standard
+    severity: warning
+    component: node
+    alert-type: saturation
+  annotations:
+    governance.grafana.io/template-id: "TPL-ALERT-003"
+    governance.grafana.io/description: "Template for node CPU/memory saturation. CPU threshold: >85%, Memory threshold: >90%."
+    governance.grafana.io/customizable: "cpu_threshold (0.85), memory_threshold (0.90), instance label, for duration"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    name: "NOC-INFRA-WARN-node-saturation-high"
+    folderUid: "plat-standard"
+    ruleGroup: "infrastructure-alerts"
+    noDataState: "NoData"
+    execErrState: "Error"
+    for: "10m"
+    isPaused: false
+    annotations:
+      summary: "Node {{ $labels.instance }} CPU or memory saturation above threshold"
+      description: |
+        Node {{ $labels.instance }} is experiencing resource saturation.
+        CPU usage has exceeded 85% or memory usage has exceeded 90% for more than 10 minutes.
+        CPU current: {{ with query "1 - avg(rate(node_cpu_seconds_total{instance=\"$labels.instance\",mode=\"idle\"}[5m]))" }}{{ . | first | value | humanizePercentage }}{{ end }}
+        Memory current: {{ with query "1 - (node_memory_MemAvailable_bytes{instance=\"$labels.instance\"} / node_memory_MemTotal_bytes{instance=\"$labels.instance\"})" }}{{ . | first | value | humanizePercentage }}{{ end }}
+        Investigate running processes, recent deployments, and consider scaling or resource adjustment.
+      runbook_url: "https://wiki.vpbank.com.vn/runbooks/node-saturation"
+      dashboard_url: "https://grafana.vpbank.com.vn/d/tpl-dash-003-infra-node"
+    labels:
+      tier: "standard"
+      severity: "warning"
+      template_id: "TPL-ALERT-003"
+      alert_type: "saturation"
+      component: "infrastructure"
+    data:
+      - refId: "CPU"
+        queryType: ""
+        relativeTimeRange:
+          from: 900
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            1 - avg by (instance) (
+              rate(node_cpu_seconds_total{instance=~"__instance__",mode="idle"}[5m])
+            )
+          refId: "CPU"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "MEM"
+        queryType: ""
+        relativeTimeRange:
+          from: 900
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            1 - (
+              node_memory_MemAvailable_bytes{instance=~"__instance__"}
+              /
+              node_memory_MemTotal_bytes{instance=~"__instance__"}
+            )
+          refId: "MEM"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "CPU_THRESH"
+        queryType: ""
+        relativeTimeRange:
+          from: 900
+          to: 0
+        datasourceUid: "__expr__"
+        model:
+          conditions:
+            - evaluator:
+                params:
+                  - 0.85
+                type: "gt"
+              operator:
+                type: "and"
+              query:
+                params:
+                  - "CPU"
+              reducer:
+                params: []
+                type: "last"
+              type: "query"
+          datasource:
+            type: "__expr__"
+            uid: "__expr__"
+          expression: "CPU"
+          hide: false
+          intervalMs: 1000
+          maxDataPoints: 43200
+          refId: "CPU_THRESH"
+          type: "threshold"
+      - refId: "MEM_THRESH"
+        queryType: ""
+        relativeTimeRange:
+          from: 900
+          to: 0
+        datasourceUid: "__expr__"
+        model:
+          conditions:
+            - evaluator:
+                params:
+                  - 0.90
+                type: "gt"
+              operator:
+                type: "or"
+              query:
+                params:
+                  - "MEM"
+              reducer:
+                params: []
+                type: "last"
+              type: "query"
+          datasource:
+            type: "__expr__"
+            uid: "__expr__"
+          expression: "MEM"
+          hide: false
+          intervalMs: 1000
+          maxDataPoints: 43200
+          refId: "MEM_THRESH"
+          type: "threshold"

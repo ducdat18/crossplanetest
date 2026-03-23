@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: ${ORG_CODE_LOWER}-report-folder
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    tier: daily
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "daily"
+    governance.grafana.io/alert-interval: ">=24h"
+    governance.grafana.io/notification: "Email report daily"
+    governance.grafana.io/severity: "report"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "${ORG_CODE}/Report"
+    uid: "${ORG_CODE_LOWER}-report"
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}

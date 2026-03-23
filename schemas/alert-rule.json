@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Crossplane AlertRule Manifest Schema",
+  "description": "JSON Schema for validating Crossplane AlertRule manifests (oss.grafana.crossplane.io/v1alpha1)",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "oss.grafana.crossplane.io/v1alpha1",
+      "description": "API version for Grafana AlertRule resource"
+    },
+    "kind": {
+      "type": "string",
+      "const": "AlertRule",
+      "description": "Resource kind"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+          "description": "Kubernetes resource name (lowercase DNS label). Grafana alert name in spec must follow governance pattern.",
+          "minLength": 3,
+          "maxLength": 63
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["providerConfigRef", "forProvider"],
+      "additionalProperties": false,
+      "properties": {
+        "providerConfigRef": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Reference to ProviderConfig resource name"
+            }
+          }
+        },
+        "deletionPolicy": {
+          "type": "string",
+          "enum": ["Delete", "Orphan"],
+          "default": "Delete"
+        },
+        "forProvider": {
+          "type": "object",
+          "required": ["name", "folderUid", "ruleGroup", "data", "for", "labels", "annotations"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Z]{2,6}-[A-Z]+-(CRIT|WARN|INFO)-[a-z0-9-]+$",
+              "description": "Alert rule name following governance naming convention",
+              "maxLength": 256
+            },
+            "folderUid": {
+              "type": "string",
+              "description": "UID of the folder this alert belongs to",
+              "pattern": "^[a-z0-9-]{4,40}$"
+            },
+            "folderRef": {
+              "type": "object",
+              "required": ["name"],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "ruleGroup": {
+              "type": "string",
+              "description": "Alert rule group name for grouping related alerts",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "orgId": {
+              "type": "number",
+              "description": "Grafana Organization ID"
+            },
+            "orgIdRef": {
+              "type": "object",
+              "required": ["name"],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "noDataState": {
+              "type": "string",
+              "enum": ["NoData", "Alerting", "OK"],
+              "default": "NoData",
+              "description": "State when no data is returned"
+            },
+            "execErrState": {
+              "type": "string",
+              "enum": ["Error", "Alerting", "OK"],
+              "default": "Error",
+              "description": "State when query execution fails"
+            },
+            "for": {
+              "type": "string",
+              "pattern": "^([0-9]+[smhd])+$",
+              "description": "Duration that alert condition must be true before firing (e.g., 5m, 30s, 1h)",
+              "examples": ["30s", "1m", "5m", "15m", "1h"]
+            },
+            "isPaused": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether the alert rule is paused"
+            },
+            "labels": {
+              "type": "object",
+              "required": ["tier", "severity", "template_id"],
+              "additionalProperties": {
+                "type": "string"
+              },
+              "properties": {
+                "tier": {
+                  "type": "string",
+                  "enum": ["ultra-rt", "real-time", "nrt", "standard", "degraded", "trend", "daily"],
+                  "description": "Routing tier based on alert interval"
+                },
+                "severity": {
+                  "type": "string",
+                  "enum": ["page", "critical", "warning", "info", "report"],
+                  "description": "Alert severity level"
+                },
+                "template_id": {
+                  "type": "string",
+                  "pattern": "^TPL-ALERT-[0-9]{3}$",
+                  "description": "Template identifier used to generate this alert"
+                },
+                "org": {
+                  "type": "string",
+                  "pattern": "^ORG-[A-Z][a-zA-Z0-9]+-[0-9]{4}$",
+                  "description": "Organization name"
+                },
+                "team": {
+                  "type": "string",
+                  "pattern": "^TEAM-[A-Z]{2,6}-[a-z0-9-]+$",
+                  "description": "Team name"
+                },
+                "service": {
+                  "type": "string",
+                  "description": "Service or component the alert monitors"
+                }
+              }
+            },
+            "annotations": {
+              "type": "object",
+              "required": ["summary", "runbook_url"],
+              "additionalProperties": {
+                "type": "string"
+              },
+              "properties": {
+                "summary": {
+                  "type": "string",
+                  "description": "Short human-readable summary of what the alert means",
+                  "minLength": 10,
+                  "maxLength": 256
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Detailed description of the alert condition and impact",
+                  "maxLength": 2048
+                },
+                "runbook_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to the runbook for this alert",
+                  "pattern": "^https?://"
+                },
+                "dashboard_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "URL to the relevant Grafana dashboard"
+                }
+              }
+            },
+            "data": {
+              "type": "array",
+              "description": "Query and condition definitions for the alert",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["refId", "datasourceUid", "model"],
+                "additionalProperties": true,
+                "properties": {
+                  "refId": {
+                    "type": "string",
+                    "description": "Reference ID for this query (A, B, C, etc.)",
+                    "pattern": "^[A-Z]$"
+                  },
+                  "queryType": {
+                    "type": "string",
+                    "description": "Query type"
+                  },
+                  "relativeTimeRange": {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "number",
+                        "description": "Start of time range in seconds (relative to now)"
+                      },
+                      "to": {
+                        "type": "number",
+                        "description": "End of time range (0 = now)"
+                      }
+                    }
+                  },
+                  "datasourceUid": {
+                    "type": "string",
+                    "description": "UID of the datasource or '__expr__' for expressions"
+                  },
+                  "model": {
+                    "type": "object",
+                    "description": "Query model definition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-governance-rules": {
+    "tier_severity_mapping": {
+      "ultra-rt": "page",
+      "real-time": "critical",
+      "nrt": "warning",
+      "standard": "warning",
+      "degraded": "info",
+      "trend": "info",
+      "daily": "report"
+    },
+    "tier_interval_ranges": {
+      "ultra-rt": "< 30s",
+      "real-time": "30s - 1m",
+      "nrt": "1m - 5m",
+      "standard": "5m - 15m",
+      "degraded": "15m - 1h",
+      "trend": "1h - 24h",
+      "daily": ">= 24h"
+    },
+    "required_label_keys": ["tier", "severity", "template_id"],
+    "required_annotation_keys": ["summary", "runbook_url"]
+  }
+}

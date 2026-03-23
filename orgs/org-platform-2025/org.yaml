@@ -1,0 +1,22 @@
+apiVersion: grafana.crossplane.io/v1beta1
+kind: Organization
+metadata:
+  name: org-platform-2025
+  labels:
+    department: platform
+    lifecycle: active
+    noc-managed: "true"
+    year: "2025"
+  annotations:
+    governance.grafana.io/org-name: "ORG-Platform-2025"
+    governance.grafana.io/admin-team: "TEAM-PLAT-sre-oncall"
+    governance.grafana.io/cost-center: "CC-PLATFORM-001"
+    governance.grafana.io/created-date: "2025-01-01"
+    governance.grafana.io/description: "Platform Engineering organization for 2025 - manages SRE, infrastructure, and observability tooling"
+    governance.grafana.io/doc-url: "https://wiki.vpbank.com.vn/orgs/platform-2025"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    name: "ORG-Platform-2025"

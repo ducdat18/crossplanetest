@@ -1,0 +1,242 @@
+# Template ID: TPL-DASH-004
+# Description: Kubernetes Workload Overview - pod count, restarts, HPA status, resource utilization
+# Usage: Use code-generator.py generate-dashboard --template TPL-DASH-004 --name <name> --datasource-uid <uid>
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: tpl-dash-004-k8s-workload
+  labels:
+    template_id: TPL-DASH-004
+    lifecycle: production
+    tier: standard
+    dashboard-type: infrastructure
+    component: kubernetes
+  annotations:
+    governance.grafana.io/template-id: "TPL-DASH-004"
+    governance.grafana.io/locked-sections: "header,datasource-variables"
+    governance.grafana.io/customizable-sections: "thresholds,time-range"
+    governance.grafana.io/description: "K8s Workload template - monitors pod count, restart count, HPA, resource requests vs limits"
+    governance.grafana.io/owner-team: "TEAM-PLAT-sre-oncall"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    folder: "plat-standard"
+    overwrite: true
+    message: "TPL-DASH-004 K8s Workload v1.0"
+    configJson: |
+      {
+        "title": "PLAT-k8s-workload-v1.0",
+        "uid": "tpl-dash-004-k8s-wl",
+        "description": "Kubernetes Workload Overview - pod count, restart count, HPA status, CPU/memory requests vs limits",
+        "schemaVersion": 39,
+        "version": 1,
+        "timezone": "browser",
+        "refresh": "1m",
+        "time": { "from": "now-1h", "to": "now" },
+        "tags": ["kubernetes", "k8s", "workload", "pod", "TPL-DASH-004"],
+        "templating": {
+          "list": [
+            {
+              "name": "datasource",
+              "type": "datasource",
+              "pluginId": "prometheus",
+              "label": "Prometheus Datasource",
+              "hide": 0,
+              "refresh": 1
+            },
+            {
+              "name": "namespace",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(kube_pod_info, namespace)",
+              "label": "Namespace",
+              "hide": 0,
+              "refresh": 2,
+              "includeAll": false
+            },
+            {
+              "name": "deployment",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(kube_deployment_status_replicas{namespace=\"$namespace\"}, deployment)",
+              "label": "Deployment",
+              "hide": 0,
+              "refresh": 2,
+              "includeAll": true,
+              "allValue": ".*",
+              "multi": true
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "type": "stat",
+            "title": "Running Pods",
+            "description": "Number of pods in Running state",
+            "gridPos": { "x": 0, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 1 }, { "color": "green", "value": 2 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(kube_pod_status_phase{namespace=\"$namespace\",phase=\"Running\",pod=~\"$deployment.*\"})",
+                "refId": "A", "legendFormat": "Running"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "type": "stat",
+            "title": "Pod Restarts (1h)",
+            "description": "Total pod restarts in the last hour",
+            "gridPos": { "x": 6, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "color": { "mode": "thresholds" },
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 3 }, { "color": "red", "value": 10 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"$namespace\",pod=~\"$deployment.*\"}[1h]))",
+                "refId": "A", "legendFormat": "Restarts"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "type": "stat",
+            "title": "Desired Replicas",
+            "description": "Desired replica count from deployment spec",
+            "gridPos": { "x": 12, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(kube_deployment_spec_replicas{namespace=\"$namespace\",deployment=~\"$deployment\"})",
+                "refId": "A", "legendFormat": "Desired"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "type": "stat",
+            "title": "HPA Max Replicas",
+            "description": "Maximum replicas configured in HPA",
+            "gridPos": { "x": 18, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "purple" } }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum(kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"$namespace\",horizontalpodautoscaler=~\"$deployment.*\"})",
+                "refId": "A", "legendFormat": "HPA Max"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "type": "timeseries",
+            "title": "Pod Count Over Time",
+            "description": "Pod count by phase over time",
+            "gridPos": { "x": 0, "y": 4, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+              "overrides": [
+                { "matcher": { "id": "byName", "options": "Running" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+                { "matcher": { "id": "byName", "options": "Failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+                { "matcher": { "id": "byName", "options": "Pending" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+              ]
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (phase) (kube_pod_status_phase{namespace=\"$namespace\",pod=~\"$deployment.*\"})",
+                "refId": "A", "legendFormat": "{{phase}}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "type": "timeseries",
+            "title": "Restart Count Over Time",
+            "description": "Container restart count per pod",
+            "gridPos": { "x": 12, "y": 4, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (pod, container) (increase(kube_pod_container_status_restarts_total{namespace=\"$namespace\",pod=~\"$deployment.*\"}[5m]))",
+                "refId": "A", "legendFormat": "{{pod}}/{{container}}"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "type": "bargauge",
+            "title": "CPU: Requests vs Limits vs Usage",
+            "description": "CPU requests, limits, and actual usage per deployment",
+            "gridPos": { "x": 0, "y": 12, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "cores", "min": 0 }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "displayMode": "gradient" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (deployment) (kube_pod_container_resource_requests{namespace=\"$namespace\",resource=\"cpu\",pod=~\"$deployment.*\"})",
+                "refId": "A", "legendFormat": "Requested - {{deployment}}"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (deployment) (kube_pod_container_resource_limits{namespace=\"$namespace\",resource=\"cpu\",pod=~\"$deployment.*\"})",
+                "refId": "B", "legendFormat": "Limit - {{deployment}}"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "type": "bargauge",
+            "title": "Memory: Requests vs Limits vs Usage",
+            "description": "Memory requests, limits, and actual usage per deployment",
+            "gridPos": { "x": 12, "y": 12, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "bytes", "min": 0 }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal", "displayMode": "gradient" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (deployment) (kube_pod_container_resource_requests{namespace=\"$namespace\",resource=\"memory\",pod=~\"$deployment.*\"})",
+                "refId": "A", "legendFormat": "Requested - {{deployment}}"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (deployment) (kube_pod_container_resource_limits{namespace=\"$namespace\",resource=\"memory\",pod=~\"$deployment.*\"})",
+                "refId": "B", "legendFormat": "Limit - {{deployment}}"
+              }
+            ]
+          }
+        ]
+      }

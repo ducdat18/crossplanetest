@@ -1,0 +1,122 @@
+# Template ID: TPL-ALERT-005
+# Description: Pod CrashLoopBackOff alert - fires when a pod is in CrashLoopBackOff state
+# Tier: real-time | Severity: critical | Interval: 1m
+# Usage: Use code-generator.py generate-alert --template TPL-ALERT-005 --name <name> --interval 1m
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: AlertRule
+metadata:
+  name: tpl-alert-005-pod-crashloopbackoff
+  labels:
+    template_id: TPL-ALERT-005
+    tier: real-time
+    severity: critical
+    component: kubernetes
+    alert-type: pod-health
+  annotations:
+    governance.grafana.io/template-id: "TPL-ALERT-005"
+    governance.grafana.io/description: "Template for Pod CrashLoopBackOff detection. Fires on first CrashLoopBackOff occurrence."
+    governance.grafana.io/customizable: "namespace, deployment, for duration"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    name: "SRE-PODS-CRIT-pod-crashloopbackoff"
+    folderUid: "plat-realtime"
+    ruleGroup: "kubernetes-alerts"
+    noDataState: "NoData"
+    execErrState: "Error"
+    for: "1m"
+    isPaused: false
+    annotations:
+      summary: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} is in CrashLoopBackOff"
+      description: |
+        Pod {{ $labels.pod }} (container: {{ $labels.container }}) in namespace {{ $labels.namespace }} is in CrashLoopBackOff state.
+        The pod has restarted {{ $value }} times in the last hour.
+        This indicates a persistent application crash. Investigate:
+        1. Pod logs: kubectl logs {{ $labels.pod }} -n {{ $labels.namespace }} --previous
+        2. Events: kubectl describe pod {{ $labels.pod }} -n {{ $labels.namespace }}
+        3. Recent deployments or config changes
+        4. Resource limits (OOMKilled scenarios)
+      runbook_url: "https://wiki.vpbank.com.vn/runbooks/pod-crashloopbackoff"
+      dashboard_url: "https://grafana.vpbank.com.vn/d/tpl-dash-004-k8s-wl"
+    labels:
+      tier: "real-time"
+      severity: "critical"
+      template_id: "TPL-ALERT-005"
+      alert_type: "pod-health"
+      component: "kubernetes"
+    data:
+      - refId: "A"
+        queryType: ""
+        relativeTimeRange:
+          from: 3600
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            increase(
+              kube_pod_container_status_restarts_total{
+                namespace=~"__namespace__",
+                pod=~"__pod_selector__"
+              }[1h]
+            ) > 3
+          refId: "A"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "B"
+        queryType: ""
+        relativeTimeRange:
+          from: 300
+          to: 0
+        datasourceUid: "__ds_uid__"
+        model:
+          expr: |
+            kube_pod_container_status_waiting_reason{
+              namespace=~"__namespace__",
+              pod=~"__pod_selector__",
+              reason="CrashLoopBackOff"
+            } == 1
+          refId: "B"
+          intervalMs: 1000
+          maxDataPoints: 43200
+          instant: false
+          hide: false
+          datasource:
+            type: "prometheus"
+            uid: "__ds_uid__"
+      - refId: "C"
+        queryType: ""
+        relativeTimeRange:
+          from: 3600
+          to: 0
+        datasourceUid: "__expr__"
+        model:
+          conditions:
+            - evaluator:
+                params:
+                  - 0
+                type: "gt"
+              operator:
+                type: "and"
+              query:
+                params:
+                  - "B"
+              reducer:
+                params: []
+                type: "last"
+              type: "query"
+          datasource:
+            type: "__expr__"
+            uid: "__expr__"
+          expression: "B"
+          hide: false
+          intervalMs: 1000
+          maxDataPoints: 43200
+          refId: "C"
+          type: "threshold"

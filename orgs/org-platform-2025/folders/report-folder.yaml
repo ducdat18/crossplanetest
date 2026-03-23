@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: plat-report-folder
+  labels:
+    org: org-platform-2025
+    tier: daily
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "daily"
+    governance.grafana.io/alert-interval: ">=24h"
+    governance.grafana.io/notification: "Email report daily"
+    governance.grafana.io/severity: "report"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "PLAT/Report"
+    uid: "plat-report"
+    orgIdRef:
+      name: org-platform-2025

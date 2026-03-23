@@ -1,0 +1,118 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: test-gitops-dashboard
+  labels:
+    template_id: TPL-DASH-001
+    lifecycle: dev
+    org: org-platform-2025
+  annotations:
+    governance.grafana.io/owner-team: TEAM-PLAT-sre-oncall
+    governance.grafana.io/template-id: "TPL-DASH-001"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    configJson: |
+      {
+        "title": "PLAT-gitops-test-v1.0",
+        "uid": "gitops-dash-01",
+        "timezone": "browser",
+        "schemaVersion": 39,
+        "panels": [
+          {
+            "id": 1,
+            "type": "timeseries",
+            "title": "Testing",
+            "gridPos": {
+              "x": 0,
+              "y": 0,
+              "h": 8,
+              "w": 12
+            },
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "linear",
+                  "barAlignment": 0,
+                  "barWidthFactor": 0.6,
+                  "lineWidth": 1,
+                  "fillOpacity": 0,
+                  "gradientMode": "none",
+                  "spanNulls": false,
+                  "insertNulls": false,
+                  "showPoints": "auto",
+                  "showValues": false,
+                  "pointSize": 5,
+                  "stacking": {
+                    "mode": "none",
+                    "group": "A"
+                  },
+                  "axisPlacement": "auto",
+                  "axisLabel": "",
+                  "axisColorMode": "text",
+                  "axisBorderShow": false,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "axisCenteredZero": false,
+                  "hideFrom": {
+                    "tooltip": false,
+                    "viz": false,
+                    "legend": false
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "pluginVersion": "12.2.0",
+            "targets": [
+              {
+                "datasource": {
+                  "type": "datasource",
+                  "uid": "grafana"
+                },
+                "refId": "A"
+              }
+            ],
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
+            "options": {
+              "tooltip": {
+                "mode": "single",
+                "sort": "none",
+                "hideZeros": false
+              },
+              "legend": {
+                "showLegend": true,
+                "displayMode": "list",
+                "placement": "bottom",
+                "calcs": []
+              }
+            }
+          }
+        ]
+      }

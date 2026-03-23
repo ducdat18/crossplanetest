@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Crossplane Organization Manifest Schema",
+  "description": "JSON Schema for validating Crossplane Organization manifests (grafana.crossplane.io/v1beta1)",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "grafana.crossplane.io/v1beta1",
+      "description": "API version for Grafana Organization resource"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Organization",
+      "description": "Resource kind"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+          "description": "Kubernetes resource name (lowercase DNS label format)",
+          "minLength": 3,
+          "maxLength": 63
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "governance.grafana.io/org-name": {
+              "type": "string",
+              "pattern": "^ORG-[A-Z][a-zA-Z0-9]+-[0-9]{4}$",
+              "description": "Governed organization name following naming convention"
+            },
+            "governance.grafana.io/admin-team": {
+              "type": "string",
+              "description": "Primary admin team for this org"
+            },
+            "governance.grafana.io/cost-center": {
+              "type": "string",
+              "description": "Cost center code for billing attribution"
+            },
+            "governance.grafana.io/created-date": {
+              "type": "string",
+              "format": "date",
+              "description": "Date when organization was created (YYYY-MM-DD)"
+            }
+          }
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "department": {
+              "type": "string",
+              "description": "Department or business unit"
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": ["active", "deprecated", "archived"],
+              "description": "Organization lifecycle state"
+            },
+            "noc-managed": {
+              "type": "string",
+              "enum": ["true", "false"],
+              "description": "Whether NOC default members are auto-injected"
+            }
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["providerConfigRef", "forProvider"],
+      "additionalProperties": false,
+      "properties": {
+        "providerConfigRef": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
+        },
+        "deletionPolicy": {
+          "type": "string",
+          "enum": ["Delete", "Orphan"],
+          "default": "Delete"
+        },
+        "forProvider": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^ORG-[A-Z][a-zA-Z0-9]+-[0-9]{4}$",
+              "description": "Grafana organization display name following naming convention",
+              "minLength": 8,
+              "maxLength": 64
+            },
+            "adminUser": {
+              "type": "string",
+              "format": "email",
+              "description": "Initial admin user email address"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+apiVersion: grafana.crossplane.io/v1beta1
+kind: Organization
+metadata:
+  name: org-${ORG_CODE_LOWER}-${YEAR}
+  labels:
+    department: ${DEPARTMENT}
+    lifecycle: active
+    noc-managed: "true"
+    year: "${YEAR}"
+  annotations:
+    governance.grafana.io/org-name: "ORG-${ORG_NAME}-${YEAR}"
+    governance.grafana.io/admin-team: "TEAM-${ORG_CODE}-admin"
+    governance.grafana.io/cost-center: "${COST_CENTER}"
+    governance.grafana.io/created-date: "${CREATED_DATE}"
+    governance.grafana.io/description: "${ORG_DESCRIPTION}"
+    governance.grafana.io/doc-url: "https://wiki.vpbank.com.vn/orgs/${ORG_CODE_LOWER}-${YEAR}"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    name: "ORG-${ORG_NAME}-${YEAR}"

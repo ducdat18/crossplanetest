@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-crossplane-provider
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: grafana-governance
+    layer: infrastructure
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"   # Sync TRƯỚC (provider phải có trước resources)
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: grafana-governance
+
+  source:
+    repoURL: https://github.com/ducdat18/crossplanetest.git
+    targetRevision: main
+    path: provider
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crossplane-system
+
+  syncPolicy:
+    automated:
+      prune: false       # KHÔNG tự xóa provider nếu xóa file
+      selfHeal: true     # Tự fix nếu ai sửa tay trên cluster
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true   # Cần cho Crossplane CRDs
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+
+  # Ignore trường status (Crossplane tự update)
+  ignoreDifferences:
+    - group: pkg.crossplane.io
+      kind: Provider
+      jsonPointers:
+        - /status
+    - group: grafana.crossplane.io
+      kind: ProviderConfig
+      jsonPointers:
+        - /status
+
+  # Health check override cho Provider
+  info:
+    - name: "Description"
+      value: "Crossplane Provider Grafana + ProviderConfig"
+    - name: "Grafana URL"
+      value: "http://grafana-prod.monitoring.svc.cluster.local:80"

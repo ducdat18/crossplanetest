@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: ${ORG_CODE_LOWER}-realtime-folder
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    tier: real-time
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "real-time"
+    governance.grafana.io/alert-interval: "30s-1m"
+    governance.grafana.io/notification: "PagerDuty + Slack #alerts-critical"
+    governance.grafana.io/severity: "critical"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "${ORG_CODE}/RealTime"
+    uid: "${ORG_CODE_LOWER}-realtime"
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}

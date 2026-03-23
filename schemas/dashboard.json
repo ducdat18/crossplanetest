@@ -1,0 +1,180 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Crossplane Dashboard Manifest Schema",
+  "description": "JSON Schema for validating Crossplane Dashboard manifests (oss.grafana.crossplane.io/v1alpha1)",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "type": "string",
+      "const": "oss.grafana.crossplane.io/v1alpha1",
+      "description": "API version for Grafana Dashboard resource"
+    },
+    "kind": {
+      "type": "string",
+      "const": "Dashboard",
+      "description": "Resource kind"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": true,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+          "description": "Kubernetes resource name (lowercase DNS label format). The Grafana dashboard title follows naming convention.",
+          "minLength": 3,
+          "maxLength": 63
+        },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "governance.grafana.io/dashboard-name": {
+              "type": "string",
+              "pattern": "^[A-Z]{2,6}-[a-z0-9-]+-v[0-9]+\\.[0-9]+$",
+              "description": "Governed dashboard display name following naming convention"
+            },
+            "governance.grafana.io/template-id": {
+              "type": "string",
+              "pattern": "^TPL-DASH-[0-9]{3}$",
+              "description": "Template ID reference"
+            },
+            "governance.grafana.io/owner-team": {
+              "type": "string",
+              "pattern": "^TEAM-[A-Z]{2,6}-[a-z0-9-]+$",
+              "description": "Owning team in naming convention format"
+            }
+          }
+        },
+        "labels": {
+          "type": "object",
+          "required": ["template_id", "lifecycle"],
+          "additionalProperties": {
+            "type": "string"
+          },
+          "properties": {
+            "template_id": {
+              "type": "string",
+              "pattern": "^TPL-DASH-[0-9]{3}$",
+              "description": "Template identifier, e.g., TPL-DASH-001"
+            },
+            "lifecycle": {
+              "type": "string",
+              "enum": ["dev", "staging", "production", "deprecated"],
+              "description": "Lifecycle stage of the dashboard"
+            },
+            "tier": {
+              "type": "string",
+              "enum": ["ultra-rt", "real-time", "nrt", "standard", "degraded", "trend", "daily"],
+              "description": "Alert routing tier association"
+            },
+            "org": {
+              "type": "string",
+              "description": "Organization resource name (K8s name of the Organization resource)"
+            },
+            "team": {
+              "type": "string",
+              "pattern": "^TEAM-[A-Z]{2,6}-[a-z0-9-]+$",
+              "description": "Team name following naming convention"
+            }
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["providerConfigRef", "forProvider"],
+      "additionalProperties": false,
+      "properties": {
+        "providerConfigRef": {
+          "type": "object",
+          "required": ["name"],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Reference to ProviderConfig resource name"
+            }
+          }
+        },
+        "deletionPolicy": {
+          "type": "string",
+          "enum": ["Delete", "Orphan"],
+          "default": "Delete",
+          "description": "What happens to the Grafana dashboard when the manifest is deleted"
+        },
+        "forProvider": {
+          "type": "object",
+          "required": ["configJson"],
+          "additionalProperties": false,
+          "properties": {
+            "configJson": {
+              "type": "string",
+              "description": "JSON string containing the full Grafana dashboard definition",
+              "minLength": 10
+            },
+            "folder": {
+              "type": "string",
+              "description": "Folder UID to place the dashboard in"
+            },
+            "folderRef": {
+              "type": "object",
+              "description": "Reference to a Folder resource",
+              "required": ["name"],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "orgId": {
+              "type": "number",
+              "description": "Organization ID (numeric)"
+            },
+            "orgIdRef": {
+              "type": "object",
+              "description": "Reference to Organization resource",
+              "required": ["name"],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              }
+            },
+            "message": {
+              "type": "string",
+              "description": "Commit message for dashboard version history"
+            },
+            "overwrite": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to overwrite existing dashboard with same UID"
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-governance-rules": {
+    "required_configJson_fields": ["title", "uid", "schemaVersion", "panels"],
+    "required_label_keys": ["template_id", "lifecycle"],
+    "naming_convention_annotation": "governance.grafana.io/dashboard-name",
+    "configJson_validation": {
+      "title": {
+        "pattern": "^[A-Z]{2,6}-[a-z0-9-]+-v[0-9]+\\.[0-9]+$",
+        "description": "Grafana dashboard title must follow naming convention"
+      },
+      "uid": {
+        "pattern": "^[a-z0-9-]{4,40}$",
+        "description": "Dashboard UID must be lowercase alphanumeric with hyphens"
+      }
+    }
+  }
+}

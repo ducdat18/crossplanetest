@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: plat-degraded-folder
+  labels:
+    org: org-platform-2025
+    tier: degraded
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "degraded"
+    governance.grafana.io/alert-interval: "15m-1h"
+    governance.grafana.io/notification: "Slack #alerts-info"
+    governance.grafana.io/severity: "info"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "PLAT/Degraded"
+    uid: "plat-degraded"
+    orgIdRef:
+      name: org-platform-2025

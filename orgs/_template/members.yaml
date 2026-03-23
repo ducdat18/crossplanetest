@@ -1,0 +1,98 @@
+# OrgMember resources for ORG-${ORG_NAME}-${YEAR}
+# NOC members are auto-injected from config/noc/noc-default-members.yaml
+# Add organization-specific members below
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-${ORG_CODE_LOWER}-${YEAR}-noc-lead
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-lead@vpbank.com.vn
+    role: Admin
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-${ORG_CODE_LOWER}-${YEAR}-noc-engineer-1
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-engineer-1@vpbank.com.vn
+    role: Editor
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-${ORG_CODE_LOWER}-${YEAR}-noc-engineer-2
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-engineer-2@vpbank.com.vn
+    role: Editor
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}
+---
+apiVersion: grafana.crossplane.io/v1beta1
+kind: OrgMember
+metadata:
+  name: org-${ORG_CODE_LOWER}-${YEAR}-noc-viewer-1
+  labels:
+    org: org-${ORG_CODE_LOWER}-${YEAR}
+    source: noc-auto-injected
+    role-group: noc
+  annotations:
+    governance.grafana.io/injected-from: "config/noc/noc-default-members.yaml"
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    email: noc-viewer-1@vpbank.com.vn
+    role: Viewer
+    orgIdRef:
+      name: org-${ORG_CODE_LOWER}-${YEAR}
+---
+# Add organization-specific members below this line
+# Example:
+# apiVersion: grafana.crossplane.io/v1beta1
+# kind: OrgMember
+# metadata:
+#   name: org-${ORG_CODE_LOWER}-${YEAR}-team-lead
+#   labels:
+#     org: org-${ORG_CODE_LOWER}-${YEAR}
+#     source: manual
+#     role-group: ${ORG_CODE_LOWER}-team
+# spec:
+#   providerConfigRef:
+#     name: default
+#   forProvider:
+#     email: ${TEAM_LEAD_EMAIL}
+#     role: Admin
+#     orgIdRef:
+#       name: org-${ORG_CODE_LOWER}-${YEAR}

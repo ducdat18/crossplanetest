@@ -1,0 +1,184 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Grafana Governance Naming Rules",
+  "description": "Naming conventions and validation patterns for all Grafana resources managed via Crossplane GitOps",
+  "version": "1.0.0",
+  "rules": {
+    "dashboard": {
+      "pattern": "^[A-Z]{2,6}-[a-z0-9-]+-v[0-9]+\\.[0-9]+$",
+      "description": "Dashboard names must start with 2-6 uppercase letters (org/team code), followed by a lowercase kebab-case identifier, ending with a semantic version suffix.",
+      "examples": {
+        "valid": [
+          "PLAT-api-latency-v1.0",
+          "PAY-payment-gateway-overview-v2.1",
+          "NOC-infra-node-saturation-v1.3",
+          "SRE-k8s-workload-health-v1.0"
+        ],
+        "invalid": [
+          "plat-api-latency-v1.0",
+          "PLAT_api_latency_v1.0",
+          "PLAT-ApiLatency-v1.0",
+          "PLAT-api-latency-1.0",
+          "PLATFORM-api-latency-v1.0"
+        ]
+      },
+      "error_messages": {
+        "prefix_missing": "Dashboard name must start with 2-6 uppercase letters (org/team code), e.g., 'PLAT'",
+        "separator_missing": "Dashboard name must use a hyphen '-' after the org/team code prefix",
+        "identifier_invalid": "Dashboard identifier portion must use lowercase letters, digits, and hyphens only",
+        "version_missing": "Dashboard name must end with a semantic version like '-v1.0' or '-v2.3'",
+        "version_format": "Version suffix must be '-v' followed by MAJOR.MINOR digits, e.g., '-v1.0'"
+      },
+      "max_length": 128,
+      "notes": "The version suffix enables side-by-side coexistence of major versions and tracks dashboard evolution."
+    },
+    "alert_rule": {
+      "pattern": "^[A-Z]{2,6}-[A-Z]+-(CRIT|WARN|INFO)-[a-z0-9-]+$",
+      "description": "Alert rule names must contain org/team code, a domain/service code in uppercase, a severity level (CRIT/WARN/INFO), and a lowercase kebab-case description.",
+      "examples": {
+        "valid": [
+          "PLAT-SVC-CRIT-high-error-rate",
+          "PAY-API-WARN-elevated-latency",
+          "NOC-INFRA-INFO-disk-usage-trend",
+          "SRE-K8S-CRIT-pod-crashloopbackoff"
+        ],
+        "invalid": [
+          "plat-svc-crit-high-error-rate",
+          "PLAT-SVC-CRITICAL-high-error-rate",
+          "PLAT-SVC-high-error-rate",
+          "PLAT_SVC_CRIT_high_error_rate"
+        ]
+      },
+      "error_messages": {
+        "prefix_missing": "Alert rule name must start with 2-6 uppercase letters (org/team code)",
+        "domain_missing": "Alert rule name must include a domain/service code in uppercase after the org prefix, e.g., 'SVC', 'API', 'INFRA'",
+        "severity_invalid": "Severity must be one of: CRIT, WARN, INFO",
+        "description_invalid": "Description portion must use lowercase letters, digits, and hyphens only"
+      },
+      "severity_mapping": {
+        "CRIT": "critical - immediate action required, triggers PagerDuty",
+        "WARN": "warning - attention needed, triggers Slack notification",
+        "INFO": "informational - for awareness only, triggers email digest"
+      },
+      "max_length": 256,
+      "notes": "Severity level in the name must match the 'severity' label value (mapped accordingly)."
+    },
+    "folder": {
+      "pattern": "^[A-Z]{2,6}\\/[A-Z][a-zA-Z0-9]+(\\\/[A-Z][a-zA-Z0-9]+)*$",
+      "description": "Folder titles follow a hierarchical slash-separated path. Root segment is the org/team code in uppercase; subsequent segments start with uppercase and use alphanumeric characters.",
+      "examples": {
+        "valid": [
+          "PLAT/RealTime",
+          "PLAT/RealTime/Payments",
+          "PAY/NearRealTime/CardProcessing",
+          "NOC/Standard/Infrastructure",
+          "SRE/Degraded/Database"
+        ],
+        "invalid": [
+          "plat/realtime",
+          "PLAT/real-time",
+          "PLAT/Real Time",
+          "PLAT-RealTime",
+          "PLAT/realtime/payments"
+        ]
+      },
+      "error_messages": {
+        "root_invalid": "Folder path root must be 2-6 uppercase letters (org/team code)",
+        "segment_case": "Each path segment after the root must start with an uppercase letter",
+        "segment_chars": "Path segments may only contain letters and digits (no hyphens or spaces)",
+        "separator": "Path segments must be separated by forward slashes '/' only"
+      },
+      "max_depth": 4,
+      "max_length": 255,
+      "notes": "Folder hierarchy maps to alert routing tiers: RealTime, NearRealTime, Standard, Degraded, Report."
+    },
+    "datasource": {
+      "pattern": "^DS-[a-z]+-[a-z0-9-]+-[a-z]+(-(prod|stg|dev))?$",
+      "description": "DataSource names use a DS- prefix followed by type, service identifier, and optional environment suffix.",
+      "examples": {
+        "valid": [
+          "DS-prom-payments-api-prod",
+          "DS-loki-card-service-stg",
+          "DS-tempo-auth-api-dev",
+          "DS-prom-platform-metrics",
+          "DS-postgres-payments-db-prod"
+        ],
+        "invalid": [
+          "prom-payments-api-prod",
+          "DS-Prom-payments-api-prod",
+          "DS-prom-Payments-API-prod",
+          "DS-prom-payments-api-production"
+        ]
+      },
+      "error_messages": {
+        "prefix_missing": "DataSource name must start with 'DS-'",
+        "type_invalid": "DataSource type must be lowercase letters only (e.g., prom, loki, tempo, postgres)",
+        "identifier_invalid": "Service identifier must use lowercase letters, digits, and hyphens",
+        "env_invalid": "Environment suffix must be one of: prod, stg, dev (or omitted)"
+      },
+      "allowed_types": ["prom", "loki", "tempo", "postgres", "mysql", "kafka", "elasticsearch", "influxdb"],
+      "allowed_environments": ["prod", "stg", "dev"],
+      "max_length": 128
+    },
+    "organization": {
+      "pattern": "^ORG-[A-Z][a-zA-Z0-9]+-[0-9]{4}$",
+      "description": "Organization names start with 'ORG-' prefix, followed by a PascalCase team/department name, ending with a 4-digit year.",
+      "examples": {
+        "valid": [
+          "ORG-Platform-2025",
+          "ORG-Payments-2025",
+          "ORG-CreditCard-2024",
+          "ORG-NOC-2025",
+          "ORG-DataEngineering-2026"
+        ],
+        "invalid": [
+          "ORG-platform-2025",
+          "ORG-PLATFORM-2025",
+          "platform-2025",
+          "ORG-Platform",
+          "ORG-Platform-25"
+        ]
+      },
+      "error_messages": {
+        "prefix_missing": "Organization name must start with 'ORG-'",
+        "name_case": "Organization team/department name must start with uppercase letter (PascalCase)",
+        "year_missing": "Organization name must end with a 4-digit year, e.g., '-2025'",
+        "year_format": "Year suffix must be exactly 4 digits"
+      },
+      "max_length": 64,
+      "notes": "Year suffix enables organization versioning for annual restructuring cycles."
+    },
+    "team": {
+      "pattern": "^TEAM-[A-Z]{2,6}-[a-z0-9-]+$",
+      "description": "Team names start with 'TEAM-' prefix, followed by a 2-6 uppercase letter org/department code, then a lowercase kebab-case team identifier.",
+      "examples": {
+        "valid": [
+          "TEAM-PLAT-sre-oncall",
+          "TEAM-PAY-backend-devs",
+          "TEAM-NOC-l1-support",
+          "TEAM-SRE-platform-leads"
+        ],
+        "invalid": [
+          "TEAM-Plat-sre-oncall",
+          "TEAM-plat-sre-oncall",
+          "TEAM-PLATFORM-sre-oncall",
+          "SRE-oncall",
+          "TEAM-PLAT-SRE-Oncall"
+        ]
+      },
+      "error_messages": {
+        "prefix_missing": "Team name must start with 'TEAM-'",
+        "code_invalid": "Department code must be 2-6 uppercase letters",
+        "identifier_invalid": "Team identifier must use lowercase letters, digits, and hyphens only"
+      },
+      "max_length": 64
+    }
+  },
+  "metadata": {
+    "created_by": "platform-team",
+    "created_date": "2025-01-01",
+    "last_updated": "2025-01-01",
+    "doc_url": "https://wiki.vpbank.com.vn/grafana-governance/naming-conventions",
+    "enforcement": "OPA policy + GitHub Actions CI validation"
+  }
+}

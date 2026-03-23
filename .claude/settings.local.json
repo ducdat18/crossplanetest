@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /c/Users/ADMIN/Desktop/VPBANK/crossplane/orgs/_template/folders)",
+      "Bash(mkdir -p /c/Users/ADMIN/Desktop/VPBANK/crossplane/orgs/org-platform-2025/folders)",
+      "Bash(mkdir -p /c/Users/ADMIN/Desktop/VPBANK/crossplane/orgs/org-platform-2025/alerts)",
+      "Bash(mkdir -p /c/Users/ADMIN/Desktop/VPBANK/crossplane/templates/dashboards)",
+      "Bash(mkdir -p /c/Users/ADMIN/Desktop/VPBANK/crossplane/templates/alerts)",
+      "Bash(python3 -m py_compile scripts/validate.py)",
+      "Bash(python3 -m py_compile scripts/routing-engine.py)",
+      "Bash(python3 -m py_compile scripts/code-generator.py)",
+      "Bash(python3 -m py_compile scripts/bulk-rbac.py)",
+      "Bash(python3:*)",
+      "Bash(python -c \"import yaml; [yaml.safe_load\\(open\\(f\\).read\\(\\)\\) for f in [''orgs/org-platform-2025/org.yaml'', ''orgs/org-platform-2025/folders/realtime-folder.yaml'', ''orgs/org-platform-2025/alerts/http-error-rate-alert.yaml'', ''config/noc/noc-default-members.yaml'']]; print\\(''All YAML files parse OK''\\)\")",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(git init:*)",
+      "Bash(git remote:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

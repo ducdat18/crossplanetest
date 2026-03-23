@@ -1,0 +1,42 @@
+apiVersion: governance.grafana.io/v1
+kind: NOCDefaultMemberList
+metadata:
+  name: noc-global-defaults
+  labels:
+    managed-by: platform-team
+    lifecycle: active
+  annotations:
+    governance.grafana.io/description: "Default NOC members auto-injected into every managed organization"
+    governance.grafana.io/last-reviewed: "2025-01-01"
+    governance.grafana.io/reviewed-by: "platform-lead@vpbank.com.vn"
+spec:
+  members:
+    - email: noc-lead@vpbank.com.vn
+      grafanaRole: Admin
+      tags:
+        - lead
+        - oncall
+      displayName: "NOC Lead"
+      notes: "Primary NOC administrator with full org access"
+
+    - email: noc-engineer-1@vpbank.com.vn
+      grafanaRole: Editor
+      tags:
+        - l1-support
+        - oncall
+      displayName: "NOC Engineer 1"
+      notes: "L1 support engineer - can create/edit dashboards and alerts"
+
+    - email: noc-engineer-2@vpbank.com.vn
+      grafanaRole: Editor
+      tags:
+        - l1-support
+      displayName: "NOC Engineer 2"
+      notes: "L1 support engineer - can create/edit dashboards and alerts"
+
+    - email: noc-viewer-1@vpbank.com.vn
+      grafanaRole: Viewer
+      tags:
+        - read-only
+      displayName: "NOC Viewer 1"
+      notes: "Read-only access for NOC dashboard viewing"

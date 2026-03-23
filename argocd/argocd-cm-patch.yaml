@@ -1,0 +1,228 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  # ============================================================
+  # Custom Health Checks cho Crossplane Grafana resources
+  # ArgoCD sẽ dùng Lua script này để xác định Healthy/Degraded/Progressing
+  # ============================================================
+
+  resource.customizations.health.oss.grafana.crossplane.io_Dashboard: |
+    local health_status = {}
+    if obj.status == nil or obj.status.conditions == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Waiting for Crossplane reconciliation..."
+      return health_status
+    end
+    local ready, synced = nil, nil
+    for _, c in ipairs(obj.status.conditions) do
+      if c.type == "Ready" then ready = c end
+      if c.type == "Synced" then synced = c end
+    end
+    if ready == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Reconciliation in progress..."
+      return health_status
+    end
+    if synced ~= nil and synced.status == "False" then
+      health_status.status = "Progressing"
+      health_status.message = synced.message or "Syncing with Grafana API..."
+      return health_status
+    end
+    if ready.status == "True" then
+      health_status.status = "Healthy"
+      if obj.status.atProvider ~= nil and obj.status.atProvider.uid ~= nil then
+        health_status.message = "Dashboard uid=" .. tostring(obj.status.atProvider.uid)
+      end
+      return health_status
+    end
+    health_status.status = "Degraded"
+    health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Apply failed")
+    return health_status
+
+  resource.customizations.health.oss.grafana.crossplane.io_Folder: |
+    local health_status = {}
+    if obj.status == nil or obj.status.conditions == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Waiting for Crossplane reconciliation..."
+      return health_status
+    end
+    local ready, synced = nil, nil
+    for _, c in ipairs(obj.status.conditions) do
+      if c.type == "Ready" then ready = c end
+      if c.type == "Synced" then synced = c end
+    end
+    if ready == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Creating folder in Grafana..."
+      return health_status
+    end
+    if synced ~= nil and synced.status == "False" then
+      health_status.status = "Progressing"
+      health_status.message = synced.message or "Syncing..."
+      return health_status
+    end
+    if ready.status == "True" then
+      health_status.status = "Healthy"
+      if obj.status.atProvider ~= nil and obj.status.atProvider.uid ~= nil then
+        health_status.message = "Folder uid=" .. tostring(obj.status.atProvider.uid)
+      end
+      return health_status
+    end
+    health_status.status = "Degraded"
+    health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Apply failed")
+    return health_status
+
+  resource.customizations.health.oss.grafana.crossplane.io_AlertRule: |
+    local health_status = {}
+    if obj.status == nil or obj.status.conditions == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Waiting for Crossplane reconciliation..."
+      return health_status
+    end
+    local ready, synced = nil, nil
+    for _, c in ipairs(obj.status.conditions) do
+      if c.type == "Ready" then ready = c end
+      if c.type == "Synced" then synced = c end
+    end
+    if ready == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Creating alert rule in Grafana..."
+      return health_status
+    end
+    if synced ~= nil and synced.status == "False" then
+      health_status.status = "Progressing"
+      health_status.message = synced.message or "Syncing..."
+      return health_status
+    end
+    if ready.status == "True" then
+      health_status.status = "Healthy"
+      health_status.message = "Alert rule active in Grafana"
+      return health_status
+    end
+    if ready.reason == "ReconcilePaused" then
+      health_status.status = "Suspended"
+      health_status.message = "Alert paused by admin"
+      return health_status
+    end
+    health_status.status = "Degraded"
+    health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Apply failed")
+    return health_status
+
+  resource.customizations.health.grafana.crossplane.io_Organization: |
+    local health_status = {}
+    if obj.status == nil or obj.status.conditions == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Creating Grafana Organization..."
+      return health_status
+    end
+    local ready = nil
+    for _, c in ipairs(obj.status.conditions) do
+      if c.type == "Ready" then ready = c end
+    end
+    if ready == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Provisioning organization..."
+      return health_status
+    end
+    if ready.status == "True" then
+      health_status.status = "Healthy"
+      if obj.status.atProvider ~= nil and obj.status.atProvider.orgId ~= nil then
+        health_status.message = "Org ID=" .. tostring(obj.status.atProvider.orgId)
+      end
+      return health_status
+    end
+    health_status.status = "Degraded"
+    health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Failed")
+    return health_status
+
+  resource.customizations.health.grafana.crossplane.io_OrgMember: |
+    local health_status = {}
+    if obj.status == nil or obj.status.conditions == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Adding member to organization..."
+      return health_status
+    end
+    local ready = nil
+    for _, c in ipairs(obj.status.conditions) do
+      if c.type == "Ready" then ready = c end
+    end
+    if ready == nil then
+      health_status.status = "Progressing"
+      health_status.message = "Assigning role..."
+      return health_status
+    end
+    if ready.status == "True" then
+      health_status.status = "Healthy"
+      health_status.message = "Member assigned"
+      return health_status
+    end
+    health_status.status = "Degraded"
+    health_status.message = ready.message or "Failed to assign member"
+    return health_status
+
+  # ============================================================
+  # Resource actions — nút bấm custom trong ArgoCD UI
+  # ============================================================
+  resource.customizations.actions.oss.grafana.crossplane.io_Dashboard: |
+    discovery.lua: |
+      actions = {}
+      -- Nút "Pause Reconciliation"
+      if obj.metadata.annotations ~= nil and
+         obj.metadata.annotations["crossplane.io/paused"] == "true" then
+        actions["resume"] = {["disabled"] = false}
+      else
+        actions["pause"] = {["disabled"] = false}
+      end
+      return actions
+    definitions:
+      - name: pause
+        action.lua: |
+          obj.metadata.annotations = obj.metadata.annotations or {}
+          obj.metadata.annotations["crossplane.io/paused"] = "true"
+          return obj
+      - name: resume
+        action.lua: |
+          obj.metadata.annotations = obj.metadata.annotations or {}
+          obj.metadata.annotations["crossplane.io/paused"] = nil
+          return obj
+
+  # ============================================================
+  # Ignore fields mà Crossplane tự quản lý (tránh OutOfSync giả)
+  # ============================================================
+  resource.customizations.ignoreDifferences.oss.grafana.crossplane.io_Dashboard: |
+    jqPathExpressions:
+      - .status
+      - .metadata.annotations["crossplane.io/external-name"]
+
+  resource.customizations.ignoreDifferences.oss.grafana.crossplane.io_Folder: |
+    jqPathExpressions:
+      - .status
+      - .metadata.annotations["crossplane.io/external-name"]
+
+  resource.customizations.ignoreDifferences.oss.grafana.crossplane.io_AlertRule: |
+    jqPathExpressions:
+      - .status
+      - .metadata.annotations["crossplane.io/external-name"]
+
+  resource.customizations.ignoreDifferences.grafana.crossplane.io_Organization: |
+    jqPathExpressions:
+      - .status
+      - .metadata.annotations["crossplane.io/external-name"]
+
+  resource.customizations.ignoreDifferences.grafana.crossplane.io_OrgMember: |
+    jqPathExpressions:
+      - .status
+
+  # ============================================================
+  # Resource tracking — ArgoCD biết tên label/annotation
+  # ============================================================
+  application.resourceTrackingMethod: annotation
+
+  # Timeout cho sync (Crossplane có thể chậm)
+  timeout.reconciliation: 300s

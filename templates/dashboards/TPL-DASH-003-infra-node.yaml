@@ -1,0 +1,248 @@
+# Template ID: TPL-DASH-003
+# Description: Infrastructure Node Overview - CPU, memory, disk I/O, network traffic
+# Usage: Use code-generator.py generate-dashboard --template TPL-DASH-003 --name <name> --datasource-uid <uid>
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: tpl-dash-003-infra-node
+  labels:
+    template_id: TPL-DASH-003
+    lifecycle: production
+    tier: standard
+    dashboard-type: infrastructure
+    component: node
+  annotations:
+    governance.grafana.io/template-id: "TPL-DASH-003"
+    governance.grafana.io/locked-sections: "header,datasource-variables"
+    governance.grafana.io/customizable-sections: "thresholds,time-range"
+    governance.grafana.io/description: "Infrastructure Node template - monitors CPU, memory, disk I/O, and network traffic"
+    governance.grafana.io/owner-team: "TEAM-PLAT-sre-oncall"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Delete
+  forProvider:
+    folder: "plat-standard"
+    overwrite: true
+    message: "TPL-DASH-003 Infrastructure Node v1.0"
+    configJson: |
+      {
+        "title": "PLAT-infra-node-v1.0",
+        "uid": "tpl-dash-003-infra-node",
+        "description": "Infrastructure Node Overview - CPU usage, memory usage, disk I/O, and network traffic",
+        "schemaVersion": 39,
+        "version": 1,
+        "timezone": "browser",
+        "refresh": "1m",
+        "time": { "from": "now-3h", "to": "now" },
+        "tags": ["infrastructure", "node", "system", "TPL-DASH-003"],
+        "templating": {
+          "list": [
+            {
+              "name": "datasource",
+              "type": "datasource",
+              "pluginId": "prometheus",
+              "label": "Prometheus Datasource",
+              "hide": 0,
+              "refresh": 1
+            },
+            {
+              "name": "instance",
+              "type": "query",
+              "datasource": { "type": "prometheus", "uid": "${datasource}" },
+              "definition": "label_values(node_cpu_seconds_total, instance)",
+              "label": "Node Instance",
+              "hide": 0,
+              "refresh": 2,
+              "includeAll": false
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "type": "gauge",
+            "title": "CPU Usage",
+            "description": "Overall CPU utilization percentage",
+            "gridPos": { "x": 0, "y": 0, "h": 8, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": false, "showThresholdMarkers": true },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{instance=\"$instance\",mode=\"idle\"}[5m]))",
+                "refId": "A", "legendFormat": "CPU Usage"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "type": "gauge",
+            "title": "Memory Usage",
+            "description": "Memory utilization percentage",
+            "gridPos": { "x": 6, "y": 0, "h": 8, "w": 6 },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.75 }, { "color": "red", "value": 0.9 }] }
+              }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdMarkers": true },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "1 - (node_memory_MemAvailable_bytes{instance=\"$instance\"} / node_memory_MemTotal_bytes{instance=\"$instance\"})",
+                "refId": "A", "legendFormat": "Memory Usage"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "type": "stat",
+            "title": "Total Memory",
+            "description": "Total physical memory",
+            "gridPos": { "x": 12, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": { "unit": "bytes", "color": { "mode": "fixed", "fixedColor": "blue" } }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "node_memory_MemTotal_bytes{instance=\"$instance\"}",
+                "refId": "A", "legendFormat": "Total Memory"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "type": "stat",
+            "title": "CPU Cores",
+            "description": "Number of CPU cores",
+            "gridPos": { "x": 18, "y": 0, "h": 4, "w": 6 },
+            "fieldConfig": {
+              "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }
+            },
+            "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "count(node_cpu_seconds_total{instance=\"$instance\",mode=\"idle\"})",
+                "refId": "A", "legendFormat": "CPU Cores"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "type": "timeseries",
+            "title": "CPU Usage Over Time",
+            "description": "CPU usage percentage by mode (user, system, iowait)",
+            "gridPos": { "x": 0, "y": 8, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "percentunit", "custom": { "lineWidth": 2, "fillOpacity": 15, "showPoints": "never" }, "min": 0, "max": 1 }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "avg by (mode) (rate(node_cpu_seconds_total{instance=\"$instance\",mode!=\"idle\",mode!=\"iowait\"}[5m]))",
+                "refId": "A", "legendFormat": "{{mode}}"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "avg(rate(node_cpu_seconds_total{instance=\"$instance\",mode=\"iowait\"}[5m]))",
+                "refId": "B", "legendFormat": "iowait"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "type": "timeseries",
+            "title": "Memory Usage Over Time",
+            "description": "Memory usage breakdown: used, buffers, cached, free",
+            "gridPos": { "x": 12, "y": 8, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } }
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "node_memory_MemTotal_bytes{instance=\"$instance\"} - node_memory_MemAvailable_bytes{instance=\"$instance\"}",
+                "refId": "A", "legendFormat": "Used"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "node_memory_Buffers_bytes{instance=\"$instance\"}",
+                "refId": "B", "legendFormat": "Buffers"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "node_memory_Cached_bytes{instance=\"$instance\"}",
+                "refId": "C", "legendFormat": "Cached"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "type": "timeseries",
+            "title": "Disk I/O",
+            "description": "Disk read and write bytes per second",
+            "gridPos": { "x": 0, "y": 16, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "Bps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+              "overrides": [
+                { "matcher": { "id": "byRegexp", "options": ".*write.*" }, "properties": [{ "id": "custom.transform", "value": "negative-Y" }] }
+              ]
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (device) (rate(node_disk_read_bytes_total{instance=\"$instance\"}[5m]))",
+                "refId": "A", "legendFormat": "read - {{device}}"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (device) (rate(node_disk_written_bytes_total{instance=\"$instance\"}[5m]))",
+                "refId": "B", "legendFormat": "write - {{device}}"
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "type": "timeseries",
+            "title": "Network Traffic",
+            "description": "Network inbound and outbound bytes per second",
+            "gridPos": { "x": 12, "y": 16, "h": 8, "w": 12 },
+            "fieldConfig": {
+              "defaults": { "unit": "Bps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+              "overrides": [
+                { "matcher": { "id": "byRegexp", "options": ".*transmit.*" }, "properties": [{ "id": "custom.transform", "value": "negative-Y" }] }
+              ]
+            },
+            "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] } },
+            "targets": [
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (device) (rate(node_network_receive_bytes_total{instance=\"$instance\",device!~\"lo|veth.*|docker.*\"}[5m]))",
+                "refId": "A", "legendFormat": "receive - {{device}}"
+              },
+              {
+                "datasource": { "type": "prometheus", "uid": "${datasource}" },
+                "expr": "sum by (device) (rate(node_network_transmit_bytes_total{instance=\"$instance\",device!~\"lo|veth.*|docker.*\"}[5m]))",
+                "refId": "B", "legendFormat": "transmit - {{device}}"
+              }
+            ]
+          }
+        ]
+      }

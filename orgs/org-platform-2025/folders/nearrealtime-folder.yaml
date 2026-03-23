@@ -1,0 +1,22 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+  name: plat-nearrealtime-folder
+  labels:
+    org: org-platform-2025
+    tier: nrt
+    managed-by: platform-team
+  annotations:
+    governance.grafana.io/tier: "nrt"
+    governance.grafana.io/alert-interval: "1m-5m"
+    governance.grafana.io/notification: "Slack #alerts-warning"
+    governance.grafana.io/severity: "warning"
+spec:
+  providerConfigRef:
+    name: default
+  deletionPolicy: Orphan
+  forProvider:
+    title: "PLAT/NearRealTime"
+    uid: "plat-nearrealtime"
+    orgIdRef:
+      name: org-platform-2025
