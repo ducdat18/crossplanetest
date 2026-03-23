@@ -25,6 +25,7 @@ spec:
 
   # Loại resource được phép deploy
   clusterResourceWhitelist:
+    # Crossplane core (cluster-scoped)
     - group: pkg.crossplane.io
       kind: Provider
     - group: pkg.crossplane.io
@@ -33,8 +34,24 @@ spec:
       kind: CompositeResourceDefinition
     - group: apiextensions.crossplane.io
       kind: Composition
+    # Grafana provider configs (cluster-scoped)
+    - group: grafana.crossplane.io
+      kind: ProviderConfig
+    - group: oss.grafana.crossplane.io
+      kind: ProviderConfig
+    # K8s Secret (crossplane-system namespace)
+    - group: ''
+      kind: Secret
 
   namespaceResourceWhitelist:
+    # ArgoCD resources (cho App-of-Apps pattern)
+    - group: argoproj.io
+      kind: Application
+    - group: argoproj.io
+      kind: ApplicationSet
+    - group: argoproj.io
+      kind: AppProject
+    # Crossplane Grafana resources
     - group: grafana.crossplane.io
       kind: ProviderConfig
     - group: grafana.crossplane.io
