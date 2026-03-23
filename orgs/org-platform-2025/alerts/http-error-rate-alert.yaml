@@ -16,6 +16,7 @@ spec:
   forProvider:
     metadata:
       folderUid: plat-realtime
+      uid: plat-svc-crit-high-error-rate
     spec:
       title: "PLAT-SVC-CRIT-high-error-rate"
       for: "1m"
@@ -30,3 +31,6 @@ spec:
         severity: "critical"
         template_id: "TPL-ALERT-001"
         org: "org-platform-2025"
+      expressions:
+        A: '{"refId":"A","queryType":"","relativeTimeRange":{"from":300,"to":0},"datasourceUid":"__ds_uid__","model":{"expr":"sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m])) > 0.05","refId":"A","intervalMs":1000,"maxDataPoints":43200}}'
+        B: '{"refId":"B","queryType":"","relativeTimeRange":{"from":300,"to":0},"datasourceUid":"__expr__","model":{"type":"threshold","refId":"B","expression":"A","conditions":[{"evaluator":{"type":"gt","params":[0]},"operator":{"type":"and"},"query":{"params":["A"]},"reducer":{"type":"last","params":[]},"type":"query"}],"intervalMs":1000,"maxDataPoints":43200}}'

@@ -16,6 +16,7 @@ spec:
   forProvider:
     metadata:
       folderUid: plat-nearrealtime
+      uid: plat-api-warn-p99-latency-high
     spec:
       title: "PLAT-API-WARN-p99-latency-high"
       for: "5m"
@@ -30,3 +31,6 @@ spec:
         severity: "warning"
         template_id: "TPL-ALERT-002"
         org: "org-platform-2025"
+      expressions:
+        A: '{"refId":"A","queryType":"","relativeTimeRange":{"from":300,"to":0},"datasourceUid":"__ds_uid__","model":{"expr":"histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 2","refId":"A","intervalMs":1000,"maxDataPoints":43200}}'
+        B: '{"refId":"B","queryType":"","relativeTimeRange":{"from":300,"to":0},"datasourceUid":"__expr__","model":{"type":"threshold","refId":"B","expression":"A","conditions":[{"evaluator":{"type":"gt","params":[0]},"operator":{"type":"and"},"query":{"params":["A"]},"reducer":{"type":"last","params":[]},"type":"query"}],"intervalMs":1000,"maxDataPoints":43200}}'
