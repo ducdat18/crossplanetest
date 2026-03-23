@@ -40,13 +40,13 @@ spec:
             datasourceUid: "prometheus"
             queryType: ""
             relativeTimeRange:
-              from: 300
-              to: 0
+              - from: 300
+                to: 0
             model: '{"expr":"sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m]))","refId":"A","intervalMs":1000,"maxDataPoints":43200,"instant":false}'
           - refId: "B"
             datasourceUid: "__expr__"
             queryType: ""
             relativeTimeRange:
-              from: 300
-              to: 0
+              - from: 300
+                to: 0
             model: '{"type":"threshold","refId":"B","expression":"A","conditions":[{"evaluator":{"type":"gt","params":[0.05]},"operator":{"type":"and"},"query":{"params":["A"]},"reducer":{"type":"last","params":[]},"type":"query"}],"intervalMs":1000,"maxDataPoints":43200}'
