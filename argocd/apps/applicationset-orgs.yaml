@@ -66,20 +66,17 @@ spec:
 
       ignoreDifferences:
         - group: oss.grafana.crossplane.io
-          kind: Dashboard
-          jsonPointers: [/status]
+          kind: Organization
+          jsonPointers: [/status, /spec/forProvider/adminUser, /metadata/annotations/crossplane.io~1external-name]
         - group: oss.grafana.crossplane.io
           kind: Folder
-          jsonPointers: [/status]
+          jsonPointers: [/status, /metadata/annotations/crossplane.io~1external-name]
         - group: oss.grafana.crossplane.io
-          kind: AlertRule
-          jsonPointers: [/status]
-        - group: grafana.crossplane.io
-          kind: Organization
-          jsonPointers: [/status]
-        - group: grafana.crossplane.io
-          kind: OrgMember
-          jsonPointers: [/status]
+          kind: Dashboard
+          jsonPointers: [/status, /metadata/annotations/crossplane.io~1external-name]
+        - group: alerting.grafana.crossplane.io
+          kind: AlertruleV0Alpha1
+          jsonPointers: [/status, /metadata/annotations/crossplane.io~1external-name]
 
       info:
         - name: "Org Directory"
