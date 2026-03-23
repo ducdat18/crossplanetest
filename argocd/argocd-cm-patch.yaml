@@ -78,7 +78,7 @@ data:
     health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Apply failed")
     return health_status
 
-  resource.customizations.health.oss.grafana.crossplane.io_AlertRule: |
+  resource.customizations.health.alerting.grafana.crossplane.io_AlertruleV0Alpha1: |
     local health_status = {}
     if obj.status == nil or obj.status.conditions == nil then
       health_status.status = "Progressing"
@@ -114,7 +114,7 @@ data:
     health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Apply failed")
     return health_status
 
-  resource.customizations.health.grafana.crossplane.io_Organization: |
+  resource.customizations.health.oss.grafana.crossplane.io_Organization: |
     local health_status = {}
     if obj.status == nil or obj.status.conditions == nil then
       health_status.status = "Progressing"
@@ -141,38 +141,12 @@ data:
     health_status.message = (ready.reason or "Error") .. ": " .. (ready.message or "Failed")
     return health_status
 
-  resource.customizations.health.grafana.crossplane.io_OrgMember: |
-    local health_status = {}
-    if obj.status == nil or obj.status.conditions == nil then
-      health_status.status = "Progressing"
-      health_status.message = "Adding member to organization..."
-      return health_status
-    end
-    local ready = nil
-    for _, c in ipairs(obj.status.conditions) do
-      if c.type == "Ready" then ready = c end
-    end
-    if ready == nil then
-      health_status.status = "Progressing"
-      health_status.message = "Assigning role..."
-      return health_status
-    end
-    if ready.status == "True" then
-      health_status.status = "Healthy"
-      health_status.message = "Member assigned"
-      return health_status
-    end
-    health_status.status = "Degraded"
-    health_status.message = ready.message or "Failed to assign member"
-    return health_status
-
   # ============================================================
   # Resource actions — nút bấm custom trong ArgoCD UI
   # ============================================================
   resource.customizations.actions.oss.grafana.crossplane.io_Dashboard: |
     discovery.lua: |
       actions = {}
-      -- Nút "Pause Reconciliation"
       if obj.metadata.annotations ~= nil and
          obj.metadata.annotations["crossplane.io/paused"] == "true" then
         actions["resume"] = {["disabled"] = false}
@@ -204,20 +178,23 @@ data:
     jqPathExpressions:
       - .status
       - .metadata.annotations["crossplane.io/external-name"]
+      - .spec.initProvider
+      - .spec.managementPolicies
 
-  resource.customizations.ignoreDifferences.oss.grafana.crossplane.io_AlertRule: |
+  resource.customizations.ignoreDifferences.alerting.grafana.crossplane.io_AlertruleV0Alpha1: |
     jqPathExpressions:
       - .status
       - .metadata.annotations["crossplane.io/external-name"]
+      - .spec.initProvider
+      - .spec.managementPolicies
 
-  resource.customizations.ignoreDifferences.grafana.crossplane.io_Organization: |
+  resource.customizations.ignoreDifferences.oss.grafana.crossplane.io_Organization: |
     jqPathExpressions:
       - .status
       - .metadata.annotations["crossplane.io/external-name"]
-
-  resource.customizations.ignoreDifferences.grafana.crossplane.io_OrgMember: |
-    jqPathExpressions:
-      - .status
+      - .spec.forProvider.adminUser
+      - .spec.initProvider
+      - .spec.managementPolicies
 
   # ============================================================
   # Resource tracking — ArgoCD biết tên label/annotation
