@@ -2,8 +2,8 @@
 # Description: HTTP Error Rate alert - fires when 5xx error rate exceeds threshold
 # Tier: real-time | Severity: critical | Interval: 1m
 # Usage: Use code-generator.py generate-alert --template TPL-ALERT-001 --name <name> --interval 1m
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: tpl-alert-001-http-error-rate
   labels:

@@ -1,87 +1,32 @@
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: plat-api-warn-p99-latency-high
   labels:
-    org: org-platform-2025
-    template_id: TPL-ALERT-002
     tier: nrt
     severity: warning
-    service: api-gateway
+    template_id: TPL-ALERT-002
+    org: org-platform-2025
   annotations:
-    governance.grafana.io/created-by: "code-generator.py"
     governance.grafana.io/template-id: "TPL-ALERT-002"
-    governance.grafana.io/org: "ORG-Platform-2025"
+    governance.grafana.io/routing-tier: "nrt"
 spec:
   providerConfigRef:
     name: default
-  deletionPolicy: Delete
   forProvider:
-    name: "PLAT-API-WARN-p99-latency-high"
-    folderUid: "plat-nearrealtime"
-    ruleGroup: "latency-alerts"
-    noDataState: "NoData"
-    execErrState: "Error"
-    for: "5m"
-    isPaused: false
-    annotations:
-      summary: "P99 request latency exceeds 2 seconds on API Gateway"
-      description: "The P99 latency for the API Gateway service has exceeded 2000ms over the last 5 minutes. Users may be experiencing slow responses. Investigate upstream service dependencies, database connection pools, and resource saturation."
-      runbook_url: "https://wiki.vpbank.com.vn/runbooks/high-latency"
-      dashboard_url: "https://grafana.vpbank.com.vn/d/plat-http-svc-v1/PLAT-http-service-overview-v1.0"
-    labels:
-      tier: "nrt"
-      severity: "warning"
-      template_id: "TPL-ALERT-002"
-      org: "ORG-Platform-2025"
-      service: "api-gateway"
-      team: "TEAM-PLAT-sre-oncall"
-    data:
-      - refId: "A"
-        queryType: ""
-        relativeTimeRange:
-          from: 600
-          to: 0
-        datasourceUid: "DS-prom-platform-metrics-prod"
-        model:
-          expr: |
-            histogram_quantile(0.99,
-              sum by (le) (
-                rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])
-              )
-            )
-          refId: "A"
-          intervalMs: 1000
-          maxDataPoints: 43200
-          instant: false
-          hide: false
-      - refId: "B"
-        queryType: ""
-        relativeTimeRange:
-          from: 600
-          to: 0
-        datasourceUid: "__expr__"
-        model:
-          conditions:
-            - evaluator:
-                params:
-                  - 2.0
-                type: "gt"
-              operator:
-                type: "and"
-              query:
-                params:
-                  - "A"
-              reducer:
-                params: []
-                type: "last"
-              type: "query"
-          datasource:
-            type: "__expr__"
-            uid: "__expr__"
-          expression: "A"
-          hide: false
-          intervalMs: 1000
-          maxDataPoints: 43200
-          refId: "B"
-          type: "threshold"
+    metadata:
+      folderUid: plat-nearrealtime
+    spec:
+      title: "PLAT-API-WARN-p99-latency-high"
+      for: "5m"
+      execErrState: "Error"
+      noDataState: "NoData"
+      annotations:
+        summary: "P99 latency exceeded 2s SLO on PLAT APIs"
+        description: "P99 latency has been above 2 seconds for more than 5 minutes"
+        runbook_url: "https://wiki.vpbank.com.vn/runbooks/p99-latency"
+      labels:
+        tier: "nrt"
+        severity: "warning"
+        template_id: "TPL-ALERT-002"
+        org: "org-platform-2025"

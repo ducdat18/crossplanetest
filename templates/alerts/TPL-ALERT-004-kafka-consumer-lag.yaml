@@ -2,8 +2,8 @@
 # Description: Kafka Consumer Lag alert - fires when consumer group lag exceeds threshold
 # Tier: standard | Severity: warning | Interval: 10m
 # Usage: Use code-generator.py generate-alert --template TPL-ALERT-004 --name <name> --interval 10m
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: tpl-alert-004-kafka-consumer-lag
   labels:

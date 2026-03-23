@@ -2,7 +2,7 @@
 # NOC members are auto-injected from config/noc/noc-default-members.yaml
 # Add organization-specific members below
 ---
-apiVersion: grafana.crossplane.io/v1beta1
+apiVersion: cloud.grafana.crossplane.io/v1alpha1
 kind: OrgMember
 metadata:
   name: org-${ORG_CODE_LOWER}-${YEAR}-noc-lead
@@ -21,7 +21,7 @@ spec:
     orgIdRef:
       name: org-${ORG_CODE_LOWER}-${YEAR}
 ---
-apiVersion: grafana.crossplane.io/v1beta1
+apiVersion: cloud.grafana.crossplane.io/v1alpha1
 kind: OrgMember
 metadata:
   name: org-${ORG_CODE_LOWER}-${YEAR}-noc-engineer-1
@@ -40,7 +40,7 @@ spec:
     orgIdRef:
       name: org-${ORG_CODE_LOWER}-${YEAR}
 ---
-apiVersion: grafana.crossplane.io/v1beta1
+apiVersion: cloud.grafana.crossplane.io/v1alpha1
 kind: OrgMember
 metadata:
   name: org-${ORG_CODE_LOWER}-${YEAR}-noc-engineer-2
@@ -59,7 +59,7 @@ spec:
     orgIdRef:
       name: org-${ORG_CODE_LOWER}-${YEAR}
 ---
-apiVersion: grafana.crossplane.io/v1beta1
+apiVersion: cloud.grafana.crossplane.io/v1alpha1
 kind: OrgMember
 metadata:
   name: org-${ORG_CODE_LOWER}-${YEAR}-noc-viewer-1
@@ -80,7 +80,7 @@ spec:
 ---
 # Add organization-specific members below this line
 # Example:
-# apiVersion: grafana.crossplane.io/v1beta1
+# apiVersion: cloud.grafana.crossplane.io/v1alpha1
 # kind: OrgMember
 # metadata:
 #   name: org-${ORG_CODE_LOWER}-${YEAR}-team-lead

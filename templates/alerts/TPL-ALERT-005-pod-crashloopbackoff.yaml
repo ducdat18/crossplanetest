@@ -2,8 +2,8 @@
 # Description: Pod CrashLoopBackOff alert - fires when a pod is in CrashLoopBackOff state
 # Tier: real-time | Severity: critical | Interval: 1m
 # Usage: Use code-generator.py generate-alert --template TPL-ALERT-005 --name <name> --interval 1m
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: tpl-alert-005-pod-crashloopbackoff
   labels:

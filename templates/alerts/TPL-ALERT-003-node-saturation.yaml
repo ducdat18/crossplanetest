@@ -2,8 +2,8 @@
 # Description: Node Saturation alert - fires when CPU or memory exceeds saturation threshold
 # Tier: standard | Severity: warning | Interval: 10m
 # Usage: Use code-generator.py generate-alert --template TPL-ALERT-003 --name <name> --interval 10m
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: tpl-alert-003-node-saturation
   labels:

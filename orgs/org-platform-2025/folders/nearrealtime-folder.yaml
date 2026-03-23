@@ -18,5 +18,5 @@ spec:
   forProvider:
     title: "PLAT/NearRealTime"
     uid: "plat-nearrealtime"
-    orgIdRef:
+    organizationRef:
       name: org-platform-2025

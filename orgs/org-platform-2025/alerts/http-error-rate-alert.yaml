@@ -1,85 +1,32 @@
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: plat-svc-crit-high-error-rate
   labels:
-    org: org-platform-2025
-    template_id: TPL-ALERT-001
     tier: real-time
     severity: critical
-    service: api-gateway
+    template_id: TPL-ALERT-001
+    org: org-platform-2025
   annotations:
-    governance.grafana.io/created-by: "code-generator.py"
     governance.grafana.io/template-id: "TPL-ALERT-001"
-    governance.grafana.io/org: "ORG-Platform-2025"
+    governance.grafana.io/routing-tier: "real-time"
 spec:
   providerConfigRef:
     name: default
-  deletionPolicy: Delete
   forProvider:
-    name: "PLAT-SVC-CRIT-high-error-rate"
-    folderUid: "plat-realtime"
-    ruleGroup: "http-alerts"
-    noDataState: "NoData"
-    execErrState: "Error"
-    for: "1m"
-    isPaused: false
-    annotations:
-      summary: "HTTP error rate exceeds 5% threshold on API Gateway"
-      description: "The HTTP 5xx error rate for the API Gateway service has exceeded 5% over the last 5 minutes. This indicates a significant service degradation that requires immediate investigation. Check application logs and recent deployments."
-      runbook_url: "https://wiki.vpbank.com.vn/runbooks/high-error-rate"
-      dashboard_url: "https://grafana.vpbank.com.vn/d/plat-http-svc-v1/PLAT-http-service-overview-v1.0"
-    labels:
-      tier: "real-time"
-      severity: "critical"
-      template_id: "TPL-ALERT-001"
-      org: "ORG-Platform-2025"
-      service: "api-gateway"
-      team: "TEAM-PLAT-sre-oncall"
-    data:
-      - refId: "A"
-        queryType: ""
-        relativeTimeRange:
-          from: 600
-          to: 0
-        datasourceUid: "DS-prom-platform-metrics-prod"
-        model:
-          expr: |
-            sum(rate(http_requests_total{job="api-gateway",status=~"5.."}[5m]))
-            /
-            sum(rate(http_requests_total{job="api-gateway"}[5m]))
-          refId: "A"
-          intervalMs: 1000
-          maxDataPoints: 43200
-          instant: false
-          hide: false
-      - refId: "B"
-        queryType: ""
-        relativeTimeRange:
-          from: 600
-          to: 0
-        datasourceUid: "__expr__"
-        model:
-          conditions:
-            - evaluator:
-                params:
-                  - 0.05
-                type: "gt"
-              operator:
-                type: "and"
-              query:
-                params:
-                  - "A"
-              reducer:
-                params: []
-                type: "last"
-              type: "query"
-          datasource:
-            type: "__expr__"
-            uid: "__expr__"
-          expression: "A"
-          hide: false
-          intervalMs: 1000
-          maxDataPoints: 43200
-          refId: "B"
-          type: "threshold"
+    metadata:
+      folderUid: plat-realtime
+    spec:
+      title: "PLAT-SVC-CRIT-high-error-rate"
+      for: "1m"
+      execErrState: "Error"
+      noDataState: "NoData"
+      annotations:
+        summary: "High HTTP error rate detected on PLAT services"
+        description: "Error rate exceeded 5% threshold for more than 1 minute"
+        runbook_url: "https://wiki.vpbank.com.vn/runbooks/high-error-rate"
+      labels:
+        tier: "real-time"
+        severity: "critical"
+        template_id: "TPL-ALERT-001"
+        org: "org-platform-2025"

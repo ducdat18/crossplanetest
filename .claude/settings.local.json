@@ -17,7 +17,23 @@
       "Bash(pip3 install:*)",
       "Bash(git init:*)",
       "Bash(git remote:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(\\\\ git:*)",
+      "Bash(git config:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(kubectl cluster-info:*)",
+      "Bash(kubectl get:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl patch:*)",
+      "Bash(kubectl rollout:*)",
+      "Bash(kubectl api-resources:*)",
+      "Bash(kubectl logs:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl create:*)",
+      "Bash(kubectl explain:*)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

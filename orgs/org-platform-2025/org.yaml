@@ -1,22 +1,33 @@
-apiVersion: grafana.crossplane.io/v1beta1
+apiVersion: oss.grafana.crossplane.io/v1alpha1
 kind: Organization
 metadata:
   name: org-platform-2025
   labels:
-    department: platform
+    department: engineering
     lifecycle: active
     noc-managed: "true"
     year: "2025"
   annotations:
-    governance.grafana.io/org-name: "ORG-Platform-2025"
-    governance.grafana.io/admin-team: "TEAM-PLAT-sre-oncall"
-    governance.grafana.io/cost-center: "CC-PLATFORM-001"
-    governance.grafana.io/created-date: "2025-01-01"
-    governance.grafana.io/description: "Platform Engineering organization for 2025 - manages SRE, infrastructure, and observability tooling"
-    governance.grafana.io/doc-url: "https://wiki.vpbank.com.vn/orgs/platform-2025"
+    governance.grafana.io/org-name: ORG-Platform-2025
+    governance.grafana.io/created-date: "2026-03-23"
+    governance.grafana.io/generated-by: code-generator.py
 spec:
   providerConfigRef:
     name: default
   deletionPolicy: Orphan
   forProvider:
-    name: "ORG-Platform-2025"
+    name: ORG-Platform-2025
+    createUsers: true
+    # Admins: NOC lead + SRE lead
+    admins:
+      - noc-lead@vpbank.com.vn
+      - sre-lead@vpbank.com.vn
+    # Editors: NOC engineers + SRE engineers
+    editors:
+      - noc-engineer-1@vpbank.com.vn
+      - noc-engineer-2@vpbank.com.vn
+      - sre-engineer-1@vpbank.com.vn
+    # Viewers
+    viewers:
+      - noc-viewer-1@vpbank.com.vn
+      - dev-viewer-1@vpbank.com.vn

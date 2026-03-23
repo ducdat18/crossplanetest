@@ -2,8 +2,8 @@
 # Description: Datasource Connectivity alert - fires when a Prometheus/datasource target is down
 # Tier: real-time | Severity: critical | Interval: 30s
 # Usage: Use code-generator.py generate-alert --template TPL-ALERT-006 --name <name> --interval 30s
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: tpl-alert-006-datasource-connectivity
   labels:

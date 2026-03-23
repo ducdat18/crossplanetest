@@ -2,8 +2,8 @@
 # Description: P99 Latency alert - fires when p99 request latency exceeds threshold
 # Tier: nrt | Severity: warning | Interval: 5m
 # Usage: Use code-generator.py generate-alert --template TPL-ALERT-002 --name <name> --interval 5m
-apiVersion: oss.grafana.crossplane.io/v1alpha1
-kind: AlertRule
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: AlertruleV0Alpha1
 metadata:
   name: tpl-alert-002-p99-latency
   labels:
