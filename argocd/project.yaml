@@ -37,8 +37,24 @@ spec:
     # Grafana provider configs (cluster-scoped)
     - group: grafana.crossplane.io
       kind: ProviderConfig
+    # Grafana OSS resources (Crossplane MRs are cluster-scoped)
     - group: oss.grafana.crossplane.io
-      kind: ProviderConfig
+      kind: Organization
+    - group: oss.grafana.crossplane.io
+      kind: Folder
+    - group: oss.grafana.crossplane.io
+      kind: Dashboard
+    - group: oss.grafana.crossplane.io
+      kind: DataSource
+    - group: oss.grafana.crossplane.io
+      kind: ContactPoint
+    - group: oss.grafana.crossplane.io
+      kind: NotificationPolicy
+    # Grafana Alerting resources (cluster-scoped)
+    - group: alerting.grafana.crossplane.io
+      kind: AlertruleV0Alpha1
+    - group: alerting.grafana.crossplane.io
+      kind: RuleGroup
     # K8s Secret (crossplane-system namespace)
     - group: ''
       kind: Secret
@@ -51,25 +67,9 @@ spec:
       kind: ApplicationSet
     - group: argoproj.io
       kind: AppProject
-    # Crossplane Grafana resources
+    # Grafana provider configs (namespace-scoped references)
     - group: grafana.crossplane.io
       kind: ProviderConfig
-    - group: grafana.crossplane.io
-      kind: Organization
-    - group: grafana.crossplane.io
-      kind: OrgMember
-    - group: oss.grafana.crossplane.io
-      kind: Dashboard
-    - group: oss.grafana.crossplane.io
-      kind: Folder
-    - group: oss.grafana.crossplane.io
-      kind: AlertRule
-    - group: oss.grafana.crossplane.io
-      kind: ContactPoint
-    - group: oss.grafana.crossplane.io
-      kind: NotificationPolicy
-    - group: oss.grafana.crossplane.io
-      kind: DataSource
     - group: ''
       kind: Secret
     - group: ''
