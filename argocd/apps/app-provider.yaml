@@ -15,7 +15,7 @@ spec:
 
   source:
     repoURL: https://github.com/ducdat18/crossplanetest.git
-    targetRevision: main
+    targetRevision: master
     path: provider
 
   destination:

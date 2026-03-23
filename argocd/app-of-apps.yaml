@@ -16,7 +16,7 @@ spec:
 
   source:
     repoURL: https://github.com/ducdat18/crossplanetest.git
-    targetRevision: main
+    targetRevision: master
     path: argocd/apps       # Sync tất cả Application/ApplicationSet trong argocd/apps/
 
   destination:

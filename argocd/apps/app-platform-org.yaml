@@ -19,7 +19,7 @@ spec:
 
   source:
     repoURL: https://github.com/ducdat18/crossplanetest.git
-    targetRevision: main
+    targetRevision: master
     path: orgs/org-platform-2025
     # Sync tất cả subdirectory: folders/, alerts/, org.yaml, members.yaml
     directory:

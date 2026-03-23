@@ -16,7 +16,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/ducdat18/crossplanetest.git
-        revision: main
+        revision: master
         directories:
           - path: orgs/*        # Match mọi thư mục con của orgs/
           - path: orgs/_template  # Exclude thư mục template
@@ -41,7 +41,7 @@ spec:
 
       source:
         repoURL: https://github.com/ducdat18/crossplanetest.git
-        targetRevision: main
+        targetRevision: master
         path: "{{path}}"           # orgs/org-platform-2025, orgs/org-payments-2025, ...
         directory:
           recurse: true            # Include folders/, alerts/ subdirectories
