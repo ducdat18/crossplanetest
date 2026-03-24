@@ -1,0 +1,17 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+    name: dashboard-test-dashboard
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-03-24"
+    annotations:
+        grafana.io/title: Test Dashboard
+        grafana.io/uid: fada2022-2baa-43bc-8db6-963b35b8f0ee
+spec:
+    forProvider:
+        configJson: '{"panels":[],"schemaVersion":36,"tags":["gitops","test"],"title":"Test Dashboard","uid":"fada2022-2baa-43bc-8db6-963b35b8f0ee"}'
+        folder: General
+    providerConfigRef:
+        name: grafana-provider
