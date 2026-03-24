@@ -1,0 +1,14 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+    name: folder-ok
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-03-24"
+spec:
+    forProvider:
+        title: Ok
+        uid: afgz0bxx5ecjkd
+    providerConfigRef:
+        name: grafana-provider

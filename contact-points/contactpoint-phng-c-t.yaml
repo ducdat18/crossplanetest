@@ -1,0 +1,19 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: ContactPoint
+metadata:
+    name: contactpoint-phng-c-t
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-03-24"
+    annotations:
+        grafana.io/name: Phùng Đức Đạt
+        grafana.io/type: email
+        grafana.io/uid: cfgz05ulmchz4c
+spec:
+    forProvider:
+        name: Phùng Đức Đạt
+        type: email
+        settingsJson: '{"addresses":"deletall@gmail.com"}'
+    providerConfigRef:
+        name: grafana-provider
