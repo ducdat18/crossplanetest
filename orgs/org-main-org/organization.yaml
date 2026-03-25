@@ -1,0 +1,23 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Organization
+metadata:
+    name: org-main-org
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        org: main-org
+        sync-date: "2026-03-25"
+    annotations:
+        grafana.io/org-name: Main Org.
+spec:
+    forProvider:
+        name: Main Org.
+        admins:
+            - admin
+            - another@vpbank.com
+        viewers:
+            - testuser@vpbank.com
+            - brand.new@vpbank.com
+            - newuser@vpbank.com
+    providerConfigRef:
+        name: grafana-provider
