@@ -3,13 +3,14 @@ kind: Organization
 metadata:
     name: org-main-org
     namespace: crossplane-system
+    annotations:
+        grafana.io/org-name: Main Org.
+        crossplane.io/external-name: "1"
     labels:
         managed-by: gitops-sync
         org: main-org
-        sync-date: "2026-03-26"
-    annotations:
-        grafana.io/org-name: Main Org.
 spec:
+    deletionPolicy: Orphan
     forProvider:
         name: Main Org.
         admins:
