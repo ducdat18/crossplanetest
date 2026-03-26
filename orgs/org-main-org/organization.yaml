@@ -10,7 +10,7 @@ metadata:
         managed-by: gitops-sync
         org: main-org
 spec:
-    deletionPolicy: Orphan
+    deletionPolicy: Delete
     forProvider:
         name: Main Org.
         createUsers: false
