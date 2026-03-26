@@ -3,21 +3,22 @@ kind: Organization
 metadata:
     name: org-main-org
     namespace: crossplane-system
-    annotations:
-        grafana.io/org-name: Main Org.
-        crossplane.io/external-name: "1"
     labels:
         managed-by: gitops-sync
         org: main-org
+        sync-date: "2026-03-26"
+    annotations:
+        grafana.io/org-name: Main Org.
 spec:
-    deletionPolicy: Delete
     forProvider:
         name: Main Org.
-        createUsers: false
-        viewers:
-            - testuser@vpbank.com
-            - another@vpbank.com
+        admins:
+            - admin
+        editors:
             - brand.new@vpbank.com
+        viewers:
+            - another@vpbank.com
             - newuser@vpbank.com
+            - testuser@vpbank.com
     providerConfigRef:
         name: default
