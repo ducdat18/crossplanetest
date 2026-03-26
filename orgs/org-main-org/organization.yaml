@@ -13,8 +13,7 @@ spec:
     deletionPolicy: Orphan
     forProvider:
         name: Main Org.
-        admins:
-            - admin
+        createUsers: false
         viewers:
             - testuser@vpbank.com
             - another@vpbank.com
