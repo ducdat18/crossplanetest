@@ -17,8 +17,8 @@ spec:
         editors:
             - brand.new@vpbank.com
         viewers:
-            - another@vpbank.com
             - newuser@vpbank.com
             - testuser@vpbank.com
+            - another@vpbank.com
     providerConfigRef:
         name: default
