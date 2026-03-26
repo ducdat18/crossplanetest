@@ -14,7 +14,7 @@ metadata:
 spec:
   providerConfigRef:
     name: default
-  deletionPolicy: Orphan
+  deletionPolicy: Delete
   forProvider:
     title: "${ORG_CODE}/RealTime"
     uid: "${ORG_CODE_LOWER}-realtime"

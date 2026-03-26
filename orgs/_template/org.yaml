@@ -17,6 +17,6 @@ metadata:
 spec:
   providerConfigRef:
     name: default
-  deletionPolicy: Orphan
+  deletionPolicy: Delete
   forProvider:
     name: "ORG-${ORG_NAME}-${YEAR}"

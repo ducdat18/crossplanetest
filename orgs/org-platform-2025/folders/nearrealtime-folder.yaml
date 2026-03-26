@@ -14,7 +14,7 @@ metadata:
 spec:
   providerConfigRef:
     name: default
-  deletionPolicy: Orphan
+  deletionPolicy: Delete
   forProvider:
     title: "PLAT/NearRealTime"
     uid: "plat-nearrealtime"
