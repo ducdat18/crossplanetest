@@ -20,4 +20,4 @@ spec:
             - brand.new@vpbank.com
             - newuser@vpbank.com
     providerConfigRef:
-        name: grafana-provider
+        name: default
