@@ -1,0 +1,17 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+    name: org-it-cais-folder-databases
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        org: it-cais
+        sync-date: "2026-03-28"
+    annotations:
+        grafana.io/org: IT-CAIS
+        grafana.io/title: Databases
+spec:
+    forProvider:
+        title: Databases
+    providerConfigRef:
+        name: default
