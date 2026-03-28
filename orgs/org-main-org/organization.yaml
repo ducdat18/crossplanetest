@@ -14,10 +14,10 @@ spec:
         name: Main Org.
         createUsers: true
         editors:
-            - another@vpbank.com
-        viewers:
             - newuser@vpbank.com
-            - testuser@vpbank.com
+        viewers:
+            - another@vpbank.com
             - brand.new@vpbank.com
+            - testuser@vpbank.com
     providerConfigRef:
         name: default
