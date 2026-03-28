@@ -1,0 +1,20 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+    name: org-bu-team-folder-databases
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        org: bu-team
+        sync-date: "2026-03-28"
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
+        grafana.io/org: BU-Team
+        grafana.io/title: Databases
+spec:
+    forProvider:
+        title: Databases
+        organizationRef:
+            name: org-bu-team
+    providerConfigRef:
+        name: default

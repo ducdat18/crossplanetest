@@ -1,0 +1,18 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Organization
+metadata:
+    name: org-bu-team
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        org: bu-team
+        sync-date: "2026-03-28"
+    annotations:
+        argocd.argoproj.io/sync-wave: "0"
+        grafana.io/org-name: BU-Team
+spec:
+    forProvider:
+        name: BU-Team
+        createUsers: true
+    providerConfigRef:
+        name: default
