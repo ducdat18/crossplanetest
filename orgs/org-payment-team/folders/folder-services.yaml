@@ -1,0 +1,20 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+    name: org-payment-team-folder-services
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        org: payment-team
+        sync-date: "2026-03-28"
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
+        grafana.io/org: Payment Team
+        grafana.io/title: Services
+spec:
+    forProvider:
+        title: Services
+        organizationRef:
+            name: org-payment-team
+    providerConfigRef:
+        name: default
