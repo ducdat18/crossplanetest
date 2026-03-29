@@ -1,0 +1,20 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: DataSource
+metadata:
+    name: ds-prometheus
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-03-28"
+    annotations:
+        argocd.argoproj.io/sync-wave: "1"
+spec:
+    forProvider:
+        name: Prometheus
+        type: prometheus
+        url: http://172.19.0.1:9090
+        isDefault: true
+        accessMode: proxy
+        jsonDataEncoded: '{"httpMethod":"POST","timeInterval":"15s"}'
+    providerConfigRef:
+        name: default
