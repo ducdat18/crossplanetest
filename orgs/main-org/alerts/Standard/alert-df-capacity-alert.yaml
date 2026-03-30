@@ -1,0 +1,94 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: AlertRule
+metadata:
+    name: alert-df-capacity-alert
+    namespace: crossplane-system
+    labels:
+        category: capacity
+        managed-by: gitops-sync-plugin
+        notification-policy: slack-alerts-standard
+        owner-team: DF
+        severity: warning
+        sync-date: "2026-03-30"
+        template-id: TPL-ALERT-003
+        tier: standard
+    annotations:
+        governance.grafana.io/interval-seconds: "300"
+        governance.grafana.io/routing-tier: standard
+spec:
+    forProvider:
+        name: DF-CAPACITY-ALERT
+        orgId: 0
+        folderUid: afhke2bqakvswa
+        ruleGroup: IT-RTB-DF 5m GROUP
+        noDataState: NoData
+        execErrState: Error
+        for: 15m
+        data:
+            - datasourceUid: mimir
+              model:
+                datasource:
+                    type: prometheus
+                    uid: mimir
+                expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+                instant: false
+                intervalMs: 60000
+                maxDataPoints: 43200
+                range: true
+                refId: A
+              queryType: range
+              refId: A
+              relativeTimeRange:
+                from: 600
+                to: 0
+            - datasourceUid: __expr__
+              model:
+                conditions: []
+                expression: A
+                reducer: last
+                refId: B
+                type: reduce
+              queryType: ""
+              refId: B
+              relativeTimeRange:
+                from: 600
+                to: 0
+            - datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 0
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                expression: B
+                refId: C
+                type: threshold
+              queryType: ""
+              refId: C
+              relativeTimeRange:
+                from: 600
+                to: 0
+        condition: C
+        annotations:
+            description: Cảnh báo khi memory usage vượt quá 80%
+            summary: High Memory Usage - Main Org.
+        labels:
+            category: capacity
+            managed-by: gitops-sync-plugin
+            notification-policy: slack-alerts-standard
+            owner-team: DF
+            severity: warning
+            sync-date: "2026-03-30"
+            template-id: TPL-ALERT-003
+            tier: standard
+    providerConfigRef:
+        name: default
