@@ -1,0 +1,17 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Dashboard
+metadata:
+    name: dashboard-platform-overview
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-03-30"
+    annotations:
+        grafana.io/title: Platform Overview
+        grafana.io/uid: gitops-17
+spec:
+    forProvider:
+        configJson: '{"annotations":{"list":[]},"description":"","panels":[{"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null}]}},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":0},"id":1,"options":{},"targets":[{"datasource":{"type":"prometheus","uid":"${DS_PROMETHEUS}"},"expr":"sum(rate(http_requests_total[5m]))","refId":"A"}],"title":"Request Rate","type":"timeseries"},{"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"red","value":0.05}]}},"overrides":[]},"gridPos":{"h":4,"w":6,"x":12,"y":0},"id":2,"options":{},"targets":[{"datasource":{"type":"prometheus","uid":"${DS_PROMETHEUS}"},"expr":"sum(rate(http_requests_total{status=~\"5..\"}[5m]))","refId":"A"}],"title":"Error Rate","type":"stat"}],"refresh":"30s","schemaVersion":39,"tags":["platform"],"templating":{"list":[]},"time":{"from":"now-6h","to":"now"},"title":"Platform Overview","uid":"gitops-17"}'
+        folder: GitOps
+    providerConfigRef:
+        name: default
