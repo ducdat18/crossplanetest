@@ -1,8 +1,9 @@
 apiVersion: alerting.grafana.crossplane.io/v1alpha1
 kind: RuleGroup
 metadata:
-    name: rg-it-rtb-df-1m-group
-    namespace: crossplane-system
+    annotations:
+        governance.grafana.io/interval-seconds: "60"
+        governance.grafana.io/routing-tier: nrt
     labels:
         category: performance
         managed-by: gitops-sync-plugin
@@ -12,16 +13,15 @@ metadata:
         sync-date: "2026-04-01"
         template-id: TPL-ALERT-002
         tier: nrt
-    annotations:
-        governance.grafana.io/interval-seconds: "60"
-        governance.grafana.io/routing-tier: nrt
+    name: rg-it-rtb-df-1m-group
+    namespace: crossplane-system
 spec:
     forProvider:
+        folderUid: afhke2bqakvswa
+        intervalSeconds: 60
         name: IT-RTB-DF 1m GROUP
         organizationRef:
             name: org-main-org
-        folderUid: afhke2bqakvswa
-        intervalSeconds: 60
         rule:
             - name: DF-HTTP-HIGH-LATENCY-P95-ALERT
               for: 3m
@@ -62,5 +62,38 @@ spec:
                 sync-date: "2026-04-01"
                 template-id: TPL-ALERT-002
                 tier: nrt
+            - name: DF-AVAILABILITY-ALERT
+              for: 3m
+              noDataState: NoData
+              execErrState: Error
+              condition: C
+              data:
+                - datasourceUid: mimir
+                  model: '{"datasource":{"type":"prometheus","uid":"mimir"},"expr":"sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) \u003e 0.05","instant":false,"intervalMs":60000,"maxDataPoints":43200,"range":true,"refId":"A"}'
+                  queryType: range
+                  refId: A
+                  relativeTimeRange:
+                    - from: 600
+                      to: 0
+                - datasourceUid: __expr__
+                  model: '{"conditions":[],"expression":"A","reducer":"last","refId":"B","type":"reduce"}'
+                  queryType: ""
+                  refId: B
+                  relativeTimeRange:
+                    - from: 600
+                      to: 0
+                - datasourceUid: __expr__
+                  model: '{"conditions":[{"evaluator":{"params":[0],"type":"gt"},"operator":{"type":"and"},"query":{"params":["B"]},"reducer":{"params":[],"type":"last"},"type":"query"}],"expression":"B","refId":"C","type":"threshold"}'
+                  queryType: ""
+                  refId: C
+                  relativeTimeRange:
+                    - from: 600
+                      to: 0
+              annotations:
+                description: Cảnh báo khi tỷ lệ lỗi HTTP 5xx vượt quá 5% trong 5 phút
+                summary: HTTP High Error Rate - Main Org.
+              labels:
+                category: availability
+                severity: critical
     providerConfigRef:
         name: default
