@@ -20,10 +20,10 @@ spec:
         name: IT-RTB-DF 1m GROUP
         organizationRef:
             name: org-main-org
-        folderUid: afhke2bqakvswa
+        folderUid: ""
         intervalSeconds: 60
         rule:
-            - name: DF-PLAG-ALERT
+            - name: DF-SECOND-ALERT-ALERT
               for: 3m
               noDataState: NoData
               execErrState: Error
