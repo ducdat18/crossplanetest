@@ -95,5 +95,38 @@ spec:
               labels:
                 category: availability
                 severity: critical
+            - name: DF-KUBERNETES-ALERT
+              for: 3m
+              noDataState: NoData
+              execErrState: Error
+              condition: C
+              data:
+                - datasourceUid: mimir
+                  model: '{"datasource":{"type":"prometheus","uid":"mimir"},"expr":"increase(kube_pod_container_status_restarts_total[15m]) \u003e 3","instant":false,"intervalMs":60000,"maxDataPoints":43200,"range":true,"refId":"A"}'
+                  queryType: range
+                  refId: A
+                  relativeTimeRange:
+                    - from: 600
+                      to: 0
+                - datasourceUid: __expr__
+                  model: '{"conditions":[],"expression":"A","reducer":"last","refId":"B","type":"reduce"}'
+                  queryType: ""
+                  refId: B
+                  relativeTimeRange:
+                    - from: 600
+                      to: 0
+                - datasourceUid: __expr__
+                  model: '{"conditions":[{"evaluator":{"params":[0],"type":"gt"},"operator":{"type":"and"},"query":{"params":["B"]},"reducer":{"params":[],"type":"last"},"type":"query"}],"expression":"B","refId":"C","type":"threshold"}'
+                  queryType: ""
+                  refId: C
+                  relativeTimeRange:
+                    - from: 600
+                      to: 0
+              annotations:
+                description: Cảnh báo khi pod restart nhiều hơn 3 lần trong 15 phút
+                summary: Kubernetes Pod Restart - Main Org.
+              labels:
+                category: kubernetes
+                severity: warning
     providerConfigRef:
         name: default
