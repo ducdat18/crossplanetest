@@ -4,13 +4,13 @@ metadata:
     name: rg-it-rtb-df-1m-group
     namespace: crossplane-system
     labels:
-        category: kubernetes
+        category: availability
         managed-by: gitops-sync-plugin
         notification-policy: slack-alerts-warning
         owner-team: DF
         severity: warning
         sync-date: "2026-04-01"
-        template-id: TPL-ALERT-006
+        template-id: TPL-ALERT-001
         tier: nrt
     annotations:
         governance.grafana.io/interval-seconds: "60"
@@ -23,14 +23,14 @@ spec:
         folderUid: afhke2bqakvswa
         intervalSeconds: 60
         rule:
-            - name: DF-KUBERNETES-ALERT
+            - name: DF-HIGH-ERROR-RATE-ALERT
               for: 3m
               noDataState: NoData
               execErrState: Error
               condition: C
               data:
                 - datasourceUid: mimir
-                  model: '{"datasource":{"type":"prometheus","uid":"mimir"},"expr":"increase(kube_pod_container_status_restarts_total[15m]) \u003e 5","instant":false,"intervalMs":60000,"maxDataPoints":43200,"range":true,"refId":"A"}'
+                  model: '{"datasource":{"type":"prometheus","uid":"mimir"},"expr":"sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) \u003e 0.05","instant":false,"intervalMs":60000,"maxDataPoints":43200,"range":true,"refId":"A"}'
                   queryType: range
                   refId: A
                   relativeTimeRange:
@@ -51,16 +51,16 @@ spec:
                     - from: 600
                       to: 0
               annotations:
-                description: Cảnh báo khi pod restart nhiều hơn 3 lần trong 15 phút
-                summary: Kubernetes Pod Restart - Main Org.
+                description: Cảnh báo khi tỷ lệ lỗi HTTP 5xx vượt quá 5% trong 5 phút
+                summary: HTTP High Error Rate - Main Org.
               labels:
-                category: kubernetes
+                category: availability
                 managed-by: gitops-sync-plugin
                 notification-policy: slack-alerts-warning
                 owner-team: DF
                 severity: warning
                 sync-date: "2026-04-01"
-                template-id: TPL-ALERT-006
+                template-id: TPL-ALERT-001
                 tier: nrt
     providerConfigRef:
         name: default
