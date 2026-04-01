@@ -18,7 +18,7 @@ spec:
   forProvider:
     name: "IT-RTB-DF 5m GROUP"
     folderUid: afhke2bqakvswa
-    orgId: 1
+    orgId: "1"
     intervalSeconds: 300
     rule:
       - name: "DF-CAPACITY-ALERT"
