@@ -6,7 +6,7 @@ metadata:
     labels:
         managed-by: gitops-sync
         org: payment-team
-        sync-date: "2026-03-28"
+        sync-date: "2026-04-02"
     annotations:
         argocd.argoproj.io/sync-wave: "0"
         grafana.io/org-name: Payment Team
@@ -16,7 +16,6 @@ spec:
         createUsers: true
         admins:
             - test@gmail.com
-        viewers:
             - branch@newmember@gmail.com
     providerConfigRef:
         name: default
