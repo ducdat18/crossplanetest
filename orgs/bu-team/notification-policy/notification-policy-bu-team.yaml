@@ -1,0 +1,28 @@
+apiVersion: alerting.grafana.crossplane.io/v1alpha1
+kind: NotificationPolicy
+metadata:
+    name: notification-policy-bu-team
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-04-02"
+spec:
+    forProvider:
+        contactPoint: IT-RTB-DF
+        groupBy:
+            - grafana_folder
+            - alertname
+        policy:
+            - contactPoint: IT-RTB-DF
+              groupBy:
+                - grafana_folder
+                - alertname
+              matcher:
+                - label: severity
+                  match: =
+                  value: critical
+                - label: severity
+                  match: =
+                  value: major
+    providerConfigRef:
+        name: default
