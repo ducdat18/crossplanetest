@@ -1,0 +1,13 @@
+apiVersion: oss.grafana.crossplane.io/v1alpha1
+kind: Folder
+metadata:
+    name: folder-it-rtb-payment
+    namespace: crossplane-system
+    labels:
+        managed-by: gitops-sync
+        sync-date: "2026-04-06"
+spec:
+    forProvider:
+        title: IT-RTB-PAYMENT
+    providerConfigRef:
+        name: default
